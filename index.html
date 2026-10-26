@@ -1,0 +1,273 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>The Feast Lab | Private Catering Studio</title>
+<style>
+:root{color-scheme:light;--ink:#123e3b;--teal:#0e4945;--copper:#8c4b28;--paper:#fcf8f0;--cream:#f3eadc;--line:#c8d6ce;--white:#fff;--focus:#005eaa}
+*{box-sizing:border-box}html{scroll-behavior:smooth}body{margin:0;background:var(--paper);color:#173d3a;font:16px/1.5 system-ui,-apple-system,Segoe UI,sans-serif;padding-bottom:108px}
+button,input{font:inherit}button{cursor:pointer}button:focus-visible,input:focus-visible{outline:3px solid var(--focus);outline-offset:3px}
+header{background:var(--teal);color:white;padding:24px max(18px,calc((100vw - 980px)/2));border-bottom:6px solid #bc865b}
+.brand{font:700 clamp(28px,6vw,42px)/1.1 Georgia,serif;letter-spacing:-.03em}.eyebrow{font-size:.75rem;letter-spacing:.17em;text-transform:uppercase;font-weight:700;color:#f1d8ba}
+header p{margin:10px 0 0;color:#f6eee1;max-width:600px}main{max-width:980px;margin:auto;padding:22px 16px}
+.notice{background:#fff4df;border-left:5px solid var(--copper);padding:12px 16px;border-radius:6px;margin-bottom:20px}
+.steps{display:flex;gap:8px;margin:16px 0 22px}.step{flex:1;text-align:center;border-bottom:4px solid #b9c9c2;padding:8px 3px;font-size:.83rem;font-weight:700}.step.active{border-color:var(--teal);color:var(--teal)}
+.panel{background:white;border:1px solid var(--line);border-radius:18px;box-shadow:0 10px 26px #16463b0d;padding:clamp(18px,4vw,34px);margin-bottom:18px}
+h1,h2,h3{font-family:Georgia,serif;line-height:1.2;color:var(--ink)}h1{font-size:clamp(1.7rem,4vw,2.4rem);margin:0 0 8px}h2{font-size:1.45rem;margin:0 0 12px}h3{font-size:1.12rem}
+.lede{color:#42635e;margin-top:0}.grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px}.field{display:flex;flex-direction:column;gap:5px}
+label{font-weight:700;font-size:.92rem}input{border:1.5px solid #73918b;border-radius:9px;background:#fff;padding:12px;width:100%;min-height:46px;color:#143b37}
+small,.hint{color:#44615c;font-size:.84rem}.wide{grid-column:1/-1}.section-title{margin:22px 0 10px;border-bottom:1px solid var(--line);padding-bottom:7px}
+.kpis{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}.kpi{background:var(--cream);padding:15px;border-radius:12px;min-width:0}
+.kpi strong{display:block;font-size:clamp(1.15rem,3vw,1.7rem);color:var(--teal);overflow-wrap:anywhere}.kpi span{font-size:.82rem}
+.actions{display:flex;flex-wrap:wrap;gap:10px;margin-top:18px}.action{border:1px solid var(--teal);border-radius:9px;padding:10px 14px;background:white;color:var(--teal);font-weight:700;min-height:44px}
+.action.primary{background:var(--teal);color:white}.action.danger{border-color:#9b3c34;color:#872d28}
+.action:disabled{opacity:.45;cursor:not-allowed}.error{background:#fff0ec;color:#812f28;border:2px solid #bb5146;border-radius:10px;padding:12px;margin:15px 0}
+.ok{background:#e6f3ed;border-left:4px solid #0b6250;padding:10px 14px;margin:12px 0}
+.quote{border:2px solid var(--teal);padding:clamp(18px,4vw,30px);border-radius:14px;background:white}
+.quote-head{display:flex;justify-content:space-between;gap:16px;align-items:start;border-bottom:2px solid #b9885b;padding-bottom:15px}
+.quote-mark{font:700 1.5rem Georgia,serif;color:var(--teal)}.quote-total{font:700 clamp(1.6rem,5vw,2.5rem) Georgia,serif;color:var(--teal)}
+.line{display:flex;justify-content:space-between;gap:15px;border-bottom:1px solid #e2e9e4;padding:9px 0}.line span:last-child{text-align:right;font-variant-numeric:tabular-nums}
+nav{position:fixed;bottom:0;left:0;right:0;background:white;border-top:2px solid var(--line);box-shadow:0 -5px 22px #153f3526;z-index:10;padding:12px max(16px,calc((100vw - 980px)/2));display:flex;justify-content:space-between;gap:12px}
+nav button{flex:1;max-width:220px;min-height:50px;border-radius:10px;font-weight:800;border:2px solid var(--teal);background:white;color:var(--teal)}
+nav button.next{background:var(--teal);color:white}nav button:disabled{opacity:.4}
+#status{min-height:24px}.hidden{display:none!important}
+.saved-browser{border:1px solid var(--line);border-radius:12px;padding:12px 16px;margin:0 0 22px;background:var(--paper)}.saved-browser summary{cursor:pointer;font-weight:700;color:var(--teal);min-height:44px;display:list-item;align-content:center}.saved-browser summary:focus-visible{outline:3px solid var(--focus);outline-offset:3px}.saved{padding:10px 0;border-bottom:1px solid var(--line);display:flex;align-items:center;justify-content:space-between;gap:12px}
+.saved strong{display:block}.saved button{flex-shrink:0}.saved-meta{display:block;color:#44615c;font-size:.84rem;line-height:1.5}.saved-current{background:#e6f3ed;border-radius:10px;padding:12px;margin:8px 0}.saved-tag{display:inline-block;background:#0e4945;color:white;border-radius:6px;padding:2px 7px;font-size:.75rem;font-weight:700;margin:3px 0}.saved-info{min-width:0;overflow-wrap:anywhere}
+@media(max-width:600px){.saved{flex-wrap:wrap}.saved-info{flex:1 1 100%}.grid{grid-template-columns:1fr}.kpis{grid-template-columns:1fr 1fr}.quote-head{display:block}.quote-head .hint{margin-top:8px}.step{font-size:.74rem}.panel{border-radius:12px}}
+@media(max-width:360px){.kpis{grid-template-columns:1fr}.actions .action{width:100%}}
+@media print{body.print-invalid #quote{display:none!important}body.print-invalid #printWarning{display:block!important}body{padding:0;background:white}header,nav,.notice,.steps,.private,.actions,#status,#errorBox{display:none!important}main{padding:0;max-width:none}.panel{border:0;box-shadow:none;padding:0;margin:0}.quote{border:0;padding:0}.quote-head{border-bottom:2px solid #444}#screen0,#screen1{display:none!important}#screen2{display:block!important}}
+</style>
+</head>
+<body>
+<header><div class="eyebrow">Feast Lab · Public demo</div><div class="brand">The Feast Lab</div><p>Build confident catering prices, then hand your client a beautiful estimate without exposing your costs.</p></header>
+<main>
+<div class="notice" role="note"><strong>Public demo with sample values.</strong> Saved events live only in this browser. Export a backup before clearing browser data. Quotes are estimates; verify taxes and contractual terms before use. For demonstration only; do not enter real customer information.</div>
+<div class="steps" aria-label="Pricing steps"><div class="step active" id="tab0">1 · Event</div><div class="step" id="tab1">2 · Costs</div><div class="step" id="tab2">3 · Quote</div></div>
+<div id="errorBox" class="error hidden" role="alert"></div><div id="status" role="status" aria-live="polite"></div>
+<details class="saved-browser private" id="backupTools">
+<summary>Backup &amp; restore saved events · Available anytime</summary>
+<p class="hint">Your saved events stay on this device. Download a private backup before changing browsers or clearing data. Import adds new events without replacing existing ones.</p>
+<div class="actions"><button class="action" id="export" type="button">Export backup (.json)</button><button class="action" id="importBackup" type="button" aria-controls="importFile">Import backup (.json)</button><input id="importFile" type="file" accept="application/json,.json" class="hidden" tabindex="-1"></div>
+<h2 class="section-title">Storage recovery tools</h2>
+<p class="hint">If saved events become unreadable, download the original raw storage before troubleshooting. This private text file may contain client details. It does not erase, overwrite, or repair stored events. Do not clear your browser data.</p>
+<button class="action" id="recover" type="button">Download raw storage (.txt)</button>
+</details>
+<section id="screen0" class="panel" aria-labelledby="heading0">
+<h1 id="heading0" tabindex="-1">Start with the occasion</h1><p class="lede">Give the celebration a name, then set the guest count and pricing preferences.</p>
+<details class="saved-browser"><summary>Saved events on this device · Open to load or delete</summary><p class="hint">Load an existing event here, even before entering new pricing details. Your unsaved edits are protected.</p><div id="savedList" aria-live="polite" aria-label="Saved events" tabindex="-1"></div></details>
+<button class="action primary" id="newEvent" type="button">Start a new event</button>
+<div class="grid">
+<div class="field wide"><label for="eventName">Event name</label><input id="eventName" maxlength="100" placeholder="e.g. Garden wedding reception" autocomplete="off"></div>
+<div class="field"><label for="eventDate">Event date</label><input id="eventDate" type="date"></div>
+<div class="field"><label for="guests">Number of guests</label><input id="guests" type="number" min="1" max="100000" step="1" value="40"></div>
+<div class="field"><label for="margin">Target profit margin (%)</label><input id="margin" type="number" min="0" max="94" step=".1" value="30"><small>Margin is profit ÷ revenue before sales tax.</small></div>
+<div class="field"><label for="tax">Sales tax rate (%)</label><input id="tax" type="number" min="0" max="100" step=".01" value="0"><small>Enter the applicable rate; tax is not operating revenue.</small></div>
+<div class="field"><label for="discount">Discount (%)</label><input id="discount" type="number" min="0" max="99" step=".1" value="0"></div>
+<div class="field"><label for="serviceFee">Service fee (%)</label><input id="serviceFee" type="number" min="0" max="100" step=".1" value="0"><small>Shown separately on the quote; target price adjusts to maintain margin.</small></div>
+<div class="field"><label for="deposit">Deposit (%)</label><input id="deposit" type="number" min="0" max="100" step=".1" value="30"></div>
+</div></section>
+<section id="screen1" class="panel hidden" aria-labelledby="heading1">
+<h1 id="heading1" tabindex="-1">Count every cost</h1><p class="lede">Enter total event costs in dollars. The suggested price includes your target margin, discount, and service fee.</p>
+<div class="grid">
+<div class="field"><label for="food">Ingredients &amp; beverages ($)</label><input id="food" type="number" min="0" step=".01" value="240"></div>
+<div class="field"><label for="labor">Labor ($)</label><input id="labor" type="number" min="0" step=".01" value="150"></div>
+<div class="field"><label for="overhead">Overhead &amp; equipment ($)</label><input id="overhead" type="number" min="0" step=".01" value="60"></div>
+<div class="field"><label for="other">Travel, processing &amp; other costs ($)</label><input id="other" type="number" min="0" step=".01" value="39"></div>
+</div>
+<h2 class="section-title">Your private pricing dashboard</h2><div class="kpis">
+<div class="kpi"><span>Event cost</span><strong id="kCost">$0</strong></div>
+<div class="kpi"><span>Pre-tax revenue</span><strong id="kRevenue">$0</strong></div>
+<div class="kpi"><span>Operating profit</span><strong id="kProfit">$0</strong></div>
+<div class="kpi"><span>Actual margin</span><strong id="kMargin">0%</strong></div>
+<div class="kpi"><span>Minimum suggested price per guest before tax</span><strong id="kGuest">$0</strong></div>
+<div class="kpi"><span>Client total with tax</span><strong id="kTotal">$0</strong></div>
+</div><p class="hint">Each cost category is rounded to cents. The suggested subtotal rounds up when needed to protect your target profit margin. Per-guest pricing also rounds up to the next cent, so multiplying it by the guest count may exceed the event subtotal. Tax and deposit use the displayed event subtotal. No customer information is sent to a server.</p>
+</section>
+<section id="screen2" class="panel hidden" aria-labelledby="heading2">
+<div class="private"><h1 id="heading2" tabindex="-1">Your client-ready estimate</h1><p class="lede">The printable version hides your costs and profit. Review all figures before sharing.</p></div>
+<div class="quote" id="quote">
+<div class="quote-head"><div><div class="quote-mark">The Feast Lab</div><div class="hint">Catering estimate · Not an invoice</div></div><div><strong id="qEvent">Event</strong><div id="qDate" class="hint"></div><div id="qGuests" class="hint"></div></div></div>
+<div class="line"><span>Base catering service</span><span id="qBase"></span></div>
+<div class="line"><span>Discount</span><span id="qDiscount"></span></div>
+<div class="line"><span>Service fee</span><span id="qFee"></span></div>
+<div class="line"><strong>Subtotal before tax</strong><strong id="qSubtotal"></strong></div>
+<div class="line"><span>Estimated sales tax</span><span id="qTax"></span></div>
+<div class="line"><strong>Total estimate</strong><strong class="quote-total" id="qTotal"></strong></div>
+<div class="line"><span>Suggested deposit</span><span id="qDeposit"></span></div>
+<div class="line"><span>Balance after deposit</span><span id="qBalance"></span></div>
+<p class="hint">Estimate only. Availability, scope, tax treatment, payment timing, and final terms require confirmation.</p>
+</div>
+<p id="printWarning" class="hidden" role="note">Estimate unavailable: one or more pricing inputs are invalid. Correct the event details before printing a client quote.</p>
+<div class="actions private"><button class="action primary" id="save" type="button">Save this event</button><button class="action" id="print" type="button">Print / Save PDF</button><button class="action danger" id="clear" type="button">Clear current form</button></div>
+</section>
+</main>
+<nav aria-label="Step navigation"><button id="back" type="button" disabled>← Back</button><button id="next" class="next" type="button">Next →</button></nav>
+<script>
+'use strict';
+(function(){
+const IDS=['eventName','eventDate','guests','margin','tax','discount','serviceFee','deposit','food','labor','overhead','other'];
+const DEFAULTS={eventName:'',eventDate:'',guests:'40',margin:'30',tax:'0',discount:'0',serviceFee:'0',deposit:'30',food:'240',labor:'150',overhead:'60',other:'39'};
+// Keep all event records on this device; no event details are transmitted to a server.
+const STORAGE='feastlab-private-v1';let step=0;let activeEventKey=null;let cleanForm=null;let lastInvalidField=null;
+const $=id=>document.getElementById(id);
+const money=n=>new Intl.NumberFormat('en-US',{style:'currency',currency:'USD'}).format(n);
+const val=id=>$(id).value.trim();
+function capture(){const out={};IDS.forEach(id=>out[id]=val(id));return out;}
+// A snapshot prevents accidental loss of edits when switching events or resetting the form.
+function markClean(){cleanForm=JSON.stringify(capture());}
+function confirmDiscard(){return cleanForm===null||JSON.stringify(capture())===cleanForm||window.confirm('You have unsaved changes to this event. Discard them?');}
+// Warn before refreshing, closing, or navigating away with unsaved event edits.
+function warnOnUnsavedExit(event){if(cleanForm===null||JSON.stringify(capture())===cleanForm)return;event.preventDefault();event.returnValue='';}
+function apply(data){IDS.forEach(id=>{$(id).value=String(data[id]??DEFAULTS[id]);});update();}
+function invalidNumber(id,message){const issue=new Error(message);issue.fieldId=id;return issue;}
+function safeNum(data,id,min,max,integer){const raw=String(data[id]??'').trim();if(raw==='')throw invalidNumber(id,'Enter '+label(id)+'.');const n=Number(raw);if(!Number.isFinite(n)||n<min||n>max||(integer&&!Number.isInteger(n)))throw invalidNumber(id,label(id)+' must be '+(integer?'a whole number ':'a number ')+'between '+min+' and '+max+'.');return n;}
+function label(id){return document.querySelector('label[for="'+id+'"]').textContent;}
+function validateEventDetails(data){
+// The first step must not require costs that are entered on the next screen.
+for(const [id,min,max,integer] of [['guests',1,100000,true],['margin',0,94,false],['tax',0,100,false],['discount',0,99,false],['serviceFee',0,100,false],['deposit',0,100,false]])safeNum(data,id,min,max,integer);
+}
+function costToCents(data,id){const n=safeNum(data,id,0,100000000,false);if(Math.abs(n*100-Math.round(n*100))>0.000001)throw invalidNumber(id,label(id)+' cannot have more than two decimal places.');return Math.round((n+Number.EPSILON*Math.max(1,n))*100);}
+function calculate(data){
+const guests=safeNum(data,'guests',1,100000,true),margin=safeNum(data,'margin',0,94,false)/100,tax=safeNum(data,'tax',0,100,false)/100;
+const discount=safeNum(data,'discount',0,99,false)/100,fee=safeNum(data,'serviceFee',0,100,false)/100,deposit=safeNum(data,'deposit',0,100,false)/100;
+const cost=['food','labor','overhead','other'].reduce((sum,id)=>sum+costToCents(data,id),0)/100;
+if(cost<=0)throw Error('Enter at least one positive event cost.');
+const revenueTarget=cost/(1-margin);
+const base=revenueTarget/((1-discount)*(1+fee));
+const discountValue=base*discount,afterDiscount=base-discountValue,feeValue=afterDiscount*fee;
+const revenue=afterDiscount+feeValue,profit=revenue-cost,taxValue=revenue*tax,total=revenue+taxValue,depositValue=total*deposit;
+if(![base,revenue,profit,total,depositValue].every(Number.isFinite)||total>1e12)throw Error('Amounts are too large to calculate safely.');
+return {guests,cost,base,discountValue,feeValue,revenue,profit,margin:profit/revenue,taxValue,total,depositValue,balance:total-depositValue};
+}
+// Reconcile every printed amount in whole cents so line items always add up.
+function quoteCents(r){
+const round=n=>Math.round(n*100);
+const discount=round(r.discountValue),fee=round(r.feeValue);
+const costCents=Math.round(r.cost*100);
+// Never round a suggested customer subtotal below the requested pre-tax profit margin.
+const minimumSubtotal=Math.ceil(costCents/(1-r.margin)-1e-9);
+const subtotal=Math.max(round(r.revenue),minimumSubtotal);
+const base=subtotal+discount-fee;
+// Recalculate tax and deposit from the actual displayed cents, not unrounded estimates.
+const tax=Math.round(subtotal*(r.taxValue/r.revenue)),total=subtotal+tax;
+const deposit=Math.round(total*(r.depositValue/r.total));
+return {base,discount,fee,subtotal,tax,total,deposit,balance:total-deposit};
+}
+function error(msg){$('errorBox').textContent=msg||'';$('errorBox').classList.toggle('hidden',!msg);}
+function clearInvalidField(){IDS.forEach(id=>{$(id).removeAttribute('aria-invalid');$(id).removeAttribute('aria-describedby');});lastInvalidField=null;}
+function showValidationError(issue){clearInvalidField();error(issue.message);if(issue.fieldId){lastInvalidField=issue.fieldId;$(issue.fieldId).setAttribute('aria-invalid','true');$(issue.fieldId).setAttribute('aria-describedby','errorBox');}}
+function focusInvalidField(){if(lastInvalidField){$(lastInvalidField).focus();}else{$('errorBox').setAttribute('tabindex','-1');$('errorBox').focus();}}
+function status(msg){$('status').textContent=msg||'';}
+function text(id,v){$(id).textContent=v;}
+function update(){
+try{const d=capture(),r=calculate(d),q=quoteCents(r);clearInvalidField();error('');document.body.classList.remove('print-invalid');
+// Dashboard profit must use the same rounded subtotal shown on the client quote.
+const revenueCents=q.subtotal,costCents=Math.round(r.cost*100),profitCents=revenueCents-costCents;
+text('kCost',money(costCents/100));text('kRevenue',money(revenueCents/100));text('kProfit',money(profitCents/100));text('kMargin',(100*profitCents/revenueCents).toFixed(1)+'%');text('kGuest',money(Math.ceil(revenueCents/r.guests)/100));text('kTotal',money(q.total/100));
+text('qEvent',d.eventName||'Untitled event');text('qDate',d.eventDate||'Date to be confirmed');text('qGuests',r.guests+' guests');
+text('qBase',money(q.base/100));text('qDiscount','−'+money(q.discount/100));text('qFee',money(q.fee/100));text('qSubtotal',money(q.subtotal/100));text('qTax',money(q.tax/100));text('qTotal',money(q.total/100));text('qDeposit',money(q.deposit/100));text('qBalance',money(q.balance/100));
+$('save').disabled=false;$('print').disabled=false;return true;
+}catch(e){
+// The Event step should not complain about costs the user has not reached yet.
+if(step===0){try{validateEventDetails(capture());clearInvalidField();error('');}catch(eventError){showValidationError(eventError);}}
+else showValidationError(e);
+document.body.classList.add('print-invalid');$('save').disabled=true;$('print').disabled=true;return false;}
+}
+function show(n){if(n<0||n>2)return;
+if(n>step){
+try{if(step===0&&n===1)validateEventDetails(capture());else if(!update()){focusInvalidField();return;}clearInvalidField();error('');}
+catch(e){showValidationError(e);focusInvalidField();return;}
+}
+step=n;for(let i=0;i<3;i++){$('screen'+i).classList.toggle('hidden',i!==n);$('tab'+i).classList.toggle('active',i===n);}
+$('back').disabled=n===0;$('next').disabled=n===2;update();window.scrollTo({top:0,behavior:'instant'});$('heading'+n).focus();}
+function loadAll(){
+try{
+const raw=localStorage.getItem(STORAGE);
+if(raw===null)return [];
+const v=JSON.parse(raw);
+if(!Array.isArray(v)||v.length>100||!v.every(validBackupEvent)||new Set(v.map(x=>x.key)).size!==v.length)throw Error('Invalid saved-event records.');
+return v;
+}catch{
+error('Saved-event storage is unreadable. Existing records have not been changed. Saving and importing are blocked to prevent data loss.');
+return null;
+}}
+function storeAll(items){try{localStorage.setItem(STORAGE,JSON.stringify(items));return true;}catch{error('Device storage is unavailable or full. Export a backup instead.');return false;}}
+// Each new event gets a stable identity independent of its name and date.
+function uniqueEventKey(list){
+let key;
+do{key='event-'+Date.now().toString(36)+'-'+Math.random().toString(36).slice(2,12);}
+while(list.some(item=>item.key===key));
+return key;
+}
+function save(){if(!update())return;const d=capture();d.eventName=d.eventName.trim();if(!d.eventName){showValidationError(invalidNumber('eventName','Enter an event name before saving.'));focusInvalidField();return;}
+$('eventName').value=d.eventName;
+const list=loadAll();if(list===null)return;
+const idx=activeEventKey===null?-1:list.findIndex(x=>x&&x.key===activeEventKey);
+const key=idx>=0?activeEventKey:uniqueEventKey(list);
+const entry={key,updatedAt:new Date().toISOString(),data:d};
+if(idx>=0)list[idx]=entry;else if(list.length>=100){error('Saved-event limit reached (100). Export a backup before adding more; no existing events were deleted.');return;}else list.unshift(entry);
+if(storeAll(list)){activeEventKey=key;markClean();status('Event saved privately on this device. Export a backup for safekeeping.');renderSaved();}}
+function renderSaved(){
+const list=loadAll(),box=$('savedList');box.replaceChildren();
+if(list===null){const p=document.createElement('p');p.className='error';p.textContent='Saved events could not be read. Existing data was not changed. Saving and importing are disabled until storage is recovered.';box.append(p);return;}
+if(!list.length){const p=document.createElement('p');p.className='hint';p.textContent='No saved events yet.';box.append(p);return;}
+list.forEach(item=>{
+const row=document.createElement('div');row.className='saved';
+const name=document.createElement('div');name.className='saved-info';
+const title=document.createElement('strong');title.textContent=item.data.eventName||'Untitled';
+const date=item.data.eventDate||'Date not set';
+const guests=item.data.guests;
+const ref=item.key.slice(-8);
+const detail=document.createElement('small');detail.className='saved-meta';detail.textContent=date+' · '+guests+' guests · Ref '+ref;
+name.append(title,detail);
+if(item.key===activeEventKey){row.classList.add('saved-current');const badge=document.createElement('span');badge.className='saved-tag';badge.textContent='Currently editing';name.append(badge);}
+const button=document.createElement('button');button.className='action';button.textContent='Load';button.type='button';
+button.setAttribute('aria-label','Load '+(item.data.eventName||'Untitled')+', '+date+', '+guests+' guests, reference '+item.key);
+button.addEventListener('click',()=>{if(!confirmDiscard())return;activeEventKey=item.key;apply(item.data);markClean();show(0);renderSaved();status('Saved event loaded: '+(item.data.eventName||'Untitled')+'.');});
+const remove=document.createElement('button');remove.className='action danger';remove.textContent='Delete';remove.type='button';
+remove.setAttribute('aria-label','Delete '+(item.data.eventName||'Untitled')+', '+date+', reference '+item.key);
+remove.addEventListener('click',()=>deleteSavedEvent(item.key));
+row.append(name,button,remove);box.append(row);
+});
+}
+// Delete by stable identity only, after explicit confirmation and a successful storage write.
+function deleteSavedEvent(key){
+const list=loadAll();if(list===null)return false;
+const item=list.find(x=>x.key===key);if(!item){error('This saved event no longer exists. Nothing was deleted.');return false;}
+if(!window.confirm('Permanently delete "'+(item.data.eventName||'Untitled')+'" (reference '+key+') from this device? Export a backup first if you may need it again.'))return false;
+if(!storeAll(list.filter(x=>x.key!==key)))return false;
+if(activeEventKey===key)activeEventKey=null;
+renderSaved();$('savedList').focus();status('Saved event deleted from this device. Other events were preserved.');return true;
+}
+function exportBackup(){const events=loadAll();if(events===null)return;const payload={format:'feastlab-backup-v1',exportedAt:new Date().toISOString(),events};const blob=new Blob([JSON.stringify(payload,null,2)],{type:'application/json'});const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download='feast-lab-events-backup.json';a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);status('Backup exported. Store it somewhere safe.');}
+function exportDamagedStorage(){
+let raw;
+try{raw=localStorage.getItem(STORAGE);}catch{error('Browser storage cannot be accessed. No recovery file was created, and existing data was not changed.');return false;}
+if(raw===null){error('There is no saved-event storage on this device to recover.');return false;}
+try{const parsed=JSON.parse(raw);if(Array.isArray(parsed)&&parsed.length<=100&&parsed.every(validBackupEvent)&&new Set(parsed.map(x=>x.key)).size===parsed.length){status('Saved events are readable. Use Export backup for a structured copy.');return false;}}catch{}
+try{const blob=new Blob([raw],{type:'text/plain;charset=utf-8'});const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download='feast-lab-damaged-storage-recovery.txt';a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);
+status('Raw storage downloaded. Keep the file private. Browser storage was not changed.');return true;
+}catch{error('Could not create a recovery download. Browser storage was not changed.');return false;}
+}
+function mergeBackupEvents(current,incoming){
+const merged=new Map(current.map(x=>[x.key,x]));let added=0,skipped=0;
+incoming.forEach(x=>{const d=x.data,key=x.key||d.eventName+'|'+d.eventDate;if(merged.has(key)){skipped++;return;}
+merged.set(key,{key,updatedAt:x.updatedAt||new Date().toISOString(),data:d});added++;});
+if(merged.size>100)throw Error('Import exceeds the 100-event storage limit. No saved events were changed. Export a backup and use a smaller import.');
+return {events:Array.from(merged.values()),added,skipped};
+}
+function validBackupEvent(x){if(!x||typeof x!=='object'||!x.data||typeof x.data!=='object'||typeof x.key!=='string'||!x.key||x.key.length>200)return false;try{if(typeof x.data.eventName!=='string'||x.data.eventName.length>100)return false;calculate(x.data);return true;}catch{return false;}}
+// The visible button is keyboard-focusable; the hidden file input is not.
+$('importBackup').addEventListener('click',()=>$('importFile').click());
+$('importFile').addEventListener('change',async e=>{const file=e.target.files[0];if(!file)return;try{if(file.size>2000000)throw Error('Backup exceeds 2 MB.');const payload=JSON.parse(await file.text());if(payload.format!=='feastlab-backup-v1'||!Array.isArray(payload.events)||payload.events.length>100||!payload.events.every(validBackupEvent)||new Set(payload.events.map(x=>x.key)).size!==payload.events.length)throw Error('Backup format or event data is invalid.');
+const current=loadAll();if(current===null)throw Error('Existing saved events are unreadable. Import blocked to prevent overwriting them.');const result=mergeBackupEvents(current,payload.events);if(storeAll(result.events)){renderSaved();status('Backup imported: '+result.added+' new event(s); '+result.skipped+' matching event(s) preserved without overwriting.');}}catch(err){error('Import failed: '+err.message);}finally{e.target.value='';$('importBackup').focus();}});
+$('recover').addEventListener('click',exportDamagedStorage);$('save').addEventListener('click',save);window.addEventListener('beforeprint',update);$('print').addEventListener('click',()=>{if(update())window.print();});$('export').addEventListener('click',exportBackup);
+// Start fresh from the first screen or the quote, without overwriting an existing event.
+function startNewEvent(){if(!confirmDiscard())return false;activeEventKey=null;apply(DEFAULTS);markClean();show(0);renderSaved();status('New event started. Saved events were not deleted.');return true;}
+$('newEvent').addEventListener('click',startNewEvent);$('clear').addEventListener('click',startNewEvent);
+document.addEventListener('keydown',e=>{if((e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==='s'){e.preventDefault();save();}});
+$('back').addEventListener('click',()=>show(step-1));$('next').addEventListener('click',()=>show(step+1));IDS.forEach(id=>$(id).addEventListener('input',update));
+update();renderSaved();markClean();window.addEventListener('beforeunload',warnOnUnsavedExit);
+})();
+</script>
+</body></html>
