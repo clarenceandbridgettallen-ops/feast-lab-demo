@@ -26,13 +26,13 @@ function mockElement(id = '') {
   };
 }
 
-function createApp() {
+function createApp(sharedStorage = null) {
   const ids = ['eventName','eventDate','guests','margin','tax','discount','serviceFee','deposit','food','labor','overhead','other'];
   const defaults = {guests:'40',margin:'30',tax:'0',discount:'0',serviceFee:'0',deposit:'30',food:'240',labor:'150',overhead:'60',other:'39'};
   const elements = new Map();
   const get = id => { if (!elements.has(id)) elements.set(id, mockElement(id)); return elements.get(id); };
   for (const id of ids) get(id).value = defaults[id] ?? '';
-  const stored = new Map();
+  const stored = sharedStorage ?? new Map();
   let writes = 0;
   const localStorage = {
     getItem: key => stored.has(key) ? stored.get(key) : null,
@@ -202,4 +202,37 @@ test('deleting one saved event preserves the other event and refreshes the list'
   assert.equal(after[0].data.eventName, 'Fictional Community Dinner');
   assert.equal(app.get('savedList').children.length, 1);
   assert.match(app.get('status').textContent, /Other events were preserved/);
+});
+
+test('stale tab cannot overwrite a newer saved-event edit', () => {
+  const shared = new Map();
+  const first = createApp(shared);
+  first.get('sampleEvent').click();
+  first.get('save').click();
+  const second = createApp(shared);
+  second.get('savedList').children[0].children[1].click();
+  first.get('eventName').value = 'First tab newest version';
+  first.get('save').click();
+  const before = shared.get('feastlab-private-v1');
+  second.get('eventName').value = 'Second tab stale version';
+  second.get('save').click();
+  assert.equal(shared.get('feastlab-private-v1'), before, 'Stale save must not change saved bytes');
+  assert.equal(second.get('eventName').value, 'Second tab stale version', 'Unsaved edits remain visible');
+  assert.match(second.get('errorBox').textContent, /changed in another tab/);
+});
+
+test('stale tab cannot revive an event deleted in another tab', () => {
+  const shared = new Map();
+  const first = createApp(shared);
+  first.get('sampleEvent').click();
+  first.get('save').click();
+  const second = createApp(shared);
+  second.get('savedList').children[0].children[1].click();
+  first.get('savedList').children[0].children[2].click();
+  const before = shared.get('feastlab-private-v1');
+  second.get('eventName').value = 'Unsaved after deletion';
+  second.get('save').click();
+  assert.equal(shared.get('feastlab-private-v1'), before, 'Deleted event must not be recreated');
+  assert.equal(second.get('eventName').value, 'Unsaved after deletion');
+  assert.match(second.get('errorBox').textContent, /deleted in another tab/);
 });
