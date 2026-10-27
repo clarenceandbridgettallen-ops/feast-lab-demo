@@ -183,3 +183,23 @@ test('malformed JSON backup never changes an existing saved event', async () => 
   assert.equal(app.writes(), writes);
   assert.match(app.get('errorBox').textContent, /Import failed:/);
 });
+
+
+test('deleting one saved event preserves the other event and refreshes the list', () => {
+  const app = createApp();
+  app.get('sampleEvent').click();
+  app.get('save').click();
+  app.get('newEvent').click();
+  app.get('eventName').value = 'Fictional Birthday';
+  app.get('save').click();
+  const key = 'feastlab-private-v1';
+  const before = JSON.parse(app.stored.get(key));
+  assert.equal(before.length, 2);
+  app.get('savedList').children[0].children[2].click();
+  const after = JSON.parse(app.stored.get(key));
+  assert.equal(after.length, 1);
+  assert.equal(after[0].key, before[1].key, 'The other event identity must remain unchanged');
+  assert.equal(after[0].data.eventName, 'Fictional Community Dinner');
+  assert.equal(app.get('savedList').children.length, 1);
+  assert.match(app.get('status').textContent, /Other events were preserved/);
+});
