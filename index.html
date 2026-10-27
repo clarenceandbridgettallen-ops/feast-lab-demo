@@ -57,6 +57,8 @@ nav button.next{background:var(--teal);color:white}nav button:disabled{opacity:.
 <h1 id="heading0" tabindex="-1">Start with the occasion</h1><p class="lede">Give the celebration a name, then set the guest count and pricing preferences.</p>
 <details class="saved-browser"><summary>Saved events on this device · Open to load or delete</summary><p class="hint">Load an existing event here, even before entering new pricing details. Your unsaved edits are protected.</p><div id="savedList" aria-live="polite" aria-label="Saved events" tabindex="-1"></div></details>
 <button class="action primary" id="newEvent" type="button">Start a new event</button>
+<button class="action" id="sampleEvent" type="button">Try a fictional catering event</button>
+<p class="hint">Use the made-up example to explore pricing without entering real client information.</p>
 <div class="grid">
 <div class="field wide"><label for="eventName">Event name</label><input id="eventName" maxlength="100" placeholder="e.g. Garden wedding reception" autocomplete="off"></div>
 <div class="field"><label for="eventDate">Event date</label><input id="eventDate" type="date"></div>
@@ -265,10 +267,14 @@ const current=loadAll();if(current===null)throw Error('Existing saved events are
 $('recover').addEventListener('click',exportDamagedStorage);$('save').addEventListener('click',save);window.addEventListener('beforeprint',update);$('print').addEventListener('click',()=>{if(update())window.print();});$('export').addEventListener('click',exportBackup);
 // Start fresh from the first screen or the quote, without overwriting an existing event.
 function startNewEvent(){if(!confirmDiscard())return false;activeEventKey=null;apply(DEFAULTS);markClean();show(0);renderSaved();status('New event started. Saved events were not deleted.');return true;}
-$('newEvent').addEventListener('click',startNewEvent);$('clear').addEventListener('click',startNewEvent);
+// Fictional demonstration data stays in the form and is never saved automatically.
+function loadFictionalExample(){if(!confirmDiscard())return false;activeEventKey=null;apply({...DEFAULTS,eventName:'Fictional Community Dinner'});markClean();show(0);renderSaved();status('Fictional sample loaded. Nothing was saved; use Next to explore the quote.');return true;}
+$('newEvent').addEventListener('click',startNewEvent);$('sampleEvent').addEventListener('click',loadFictionalExample);$('clear').addEventListener('click',startNewEvent);
 document.addEventListener('keydown',e=>{if((e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==='s'){e.preventDefault();save();}});
 $('back').addEventListener('click',()=>show(step-1));$('next').addEventListener('click',()=>show(step+1));IDS.forEach(id=>$(id).addEventListener('input',update));
 update();renderSaved();markClean();window.addEventListener('beforeunload',warnOnUnsavedExit);
+// Refresh only the saved-event list when another tab changes local storage. Keep unsaved form edits.
+window.addEventListener('storage',e=>{if(e.storageArea!==localStorage||(e.key!==STORAGE&&e.key!==null))return;renderSaved();status('Saved events changed in another tab. Your current form was not changed.');});
 })();
 </script>
 </body></html>
