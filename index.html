@@ -240,7 +240,9 @@ function deleteSavedEvent(key){
 const list=loadAll();if(list===null)return false;
 const item=list.find(x=>x.key===key);if(!item){error('This saved event no longer exists. Nothing was deleted.');return false;}
 if(!window.confirm('Permanently delete "'+(item.data.eventName||'Untitled')+'" (reference '+key+') from this device? Export a backup first if you may need it again.'))return false;
-if(!storeAll(list.filter(x=>x.key!==key)))return false;
+const latest=loadAll();if(latest===null)return false;
+if(JSON.stringify(latest)!==JSON.stringify(list)){error('Saved events changed in another tab while confirming deletion. Nothing was deleted. Review the saved list and try again.');renderSaved();return false;}
+if(!storeAll(latest.filter(x=>x.key!==key)))return false;
 if(activeEventKey===key){activeEventKey=null;activeEventSnapshot=null;}
 renderSaved();$('savedList').focus();status('Saved event deleted from this device. Other events were preserved.');return true;
 }
