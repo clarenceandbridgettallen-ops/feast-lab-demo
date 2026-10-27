@@ -51,7 +51,7 @@ function createApp(sharedStorage = null) {
     addEventListener() {},
   };
   vm.runInNewContext(source, {document, window, localStorage, Blob, URL, Intl, console, setTimeout, clearTimeout}, {timeout: 2000});
-  return {get, stored, localStorage, windowEvents, writes: () => writes};
+  return {get, stored, localStorage, window, windowEvents, writes: () => writes};
 }
 
 test('inline application JavaScript parses and has local-only network policy', () => {
@@ -235,4 +235,27 @@ test('stale tab cannot revive an event deleted in another tab', () => {
   assert.equal(shared.get('feastlab-private-v1'), before, 'Deleted event must not be recreated');
   assert.equal(second.get('eventName').value, 'Unsaved after deletion');
   assert.match(second.get('errorBox').textContent, /deleted in another tab/);
+});
+
+test('deletion confirmation cannot erase a concurrent tab save', () => {
+  const shared = new Map();
+  const app = createApp(shared);
+  app.get('sampleEvent').click();
+  app.get('save').click();
+  const key = 'feastlab-private-v1';
+  const original = JSON.parse(shared.get(key));
+  const newEntry = {...original[0], key: 'other-tab-new-event',
+    data: {...original[0].data, eventName: 'Another fictional booking'}};
+  const writes = app.writes();
+  app.window.confirm = () => {
+    shared.set(key, JSON.stringify([newEntry, ...original]));
+    return true;
+  };
+  app.get('savedList').children[0].children[2].click();
+  const after = JSON.parse(shared.get(key));
+  assert.equal(after.length, 2, 'Both existing and concurrent events must survive');
+  assert.equal(after[0].key, newEntry.key);
+  assert.equal(after[1].key, original[0].key);
+  assert.equal(app.writes(), writes, 'The stale confirmation must not write storage');
+  assert.match(app.get('errorBox').textContent, /changed in another tab while confirming deletion/);
 });
