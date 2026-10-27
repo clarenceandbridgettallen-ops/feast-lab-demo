@@ -83,3 +83,62 @@ test('explicit save persists one local event and storage refresh preserves edits
   assert.equal(app.get('eventName').value, 'Unsaved editing in this tab');
   assert.equal(JSON.parse(app.stored.get(key)).length, 1);
 });
+
+
+test('valid backup adds new events but never overwrites matching saved identities', async () => {
+  const app = createApp();
+  app.get('sampleEvent').click();
+  app.get('save').click();
+  const key = 'feastlab-private-v1';
+  const original = JSON.parse(app.stored.get(key))[0];
+  const incoming = {
+    format: 'feastlab-backup-v1',
+    events: [
+      {...original, data: {...original.data, eventName: 'Must not replace saved event'}},
+      {key: 'imported-fictional-event', updatedAt: new Date().toISOString(),
+        data: {...original.data, eventName: 'Another fictional event'}},
+    ],
+  };
+  const input = app.get('importFile');
+  await input.listeners.get('change')({target: {
+    files: [{size: 1000, text: async () => JSON.stringify(incoming)}], value: 'selected.json',
+  }});
+  const events = JSON.parse(app.stored.get(key));
+  assert.equal(events.length, 2);
+  assert.equal(events.find(x => x.key === original.key).data.eventName, original.data.eventName);
+  assert.equal(events.find(x => x.key === 'imported-fictional-event').data.eventName, 'Another fictional event');
+  assert.match(app.get('status').textContent, /1 new event\(s\); 1 matching event\(s\) preserved/);
+});
+
+test('invalid backup cannot alter an existing saved event', async () => {
+  const app = createApp();
+  app.get('sampleEvent').click();
+  app.get('save').click();
+  const key = 'feastlab-private-v1';
+  const before = app.stored.get(key);
+  const writes = app.writes();
+  const invalid = {format: 'feastlab-backup-v1', events: [
+    {key: 'invalid-guest-count', data: {...JSON.parse(before)[0].data, guests: '0'}},
+  ]};
+  await app.get('importFile').listeners.get('change')({target: {
+    files: [{size: 1000, text: async () => JSON.stringify(invalid)}], value: 'selected.json',
+  }});
+  assert.equal(app.stored.get(key), before);
+  assert.equal(app.writes(), writes);
+  assert.match(app.get('errorBox').textContent, /Import failed: Backup format or event data is invalid/);
+});
+
+test('import refuses to overwrite unreadable local storage', async () => {
+  const app = createApp();
+  const key = 'feastlab-private-v1';
+  const damaged = '{unreadable original event bytes';
+  app.stored.set(key, damaged);
+  const writes = app.writes();
+  await app.get('importFile').listeners.get('change')({target: {
+    files: [{size: 100, text: async () => JSON.stringify({format: 'feastlab-backup-v1', events: []})}],
+    value: 'selected.json',
+  }});
+  assert.equal(app.stored.get(key), damaged);
+  assert.equal(app.writes(), writes);
+  assert.match(app.get('errorBox').textContent, /Import failed: Existing saved events are unreadable/);
+});
