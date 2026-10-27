@@ -142,3 +142,44 @@ test('import refuses to overwrite unreadable local storage', async () => {
   assert.equal(app.writes(), writes);
   assert.match(app.get('errorBox').textContent, /Import failed: Existing saved events are unreadable/);
 });
+test('import above the 100-event limit preserves every existing event', async () => {
+  const app = createApp();
+  app.get('sampleEvent').click();
+  app.get('save').click();
+  const key = 'feastlab-private-v1';
+  const template = JSON.parse(app.stored.get(key))[0];
+  const full = Array.from({length: 100}, (_, i) => ({
+    ...template, key: 'synthetic-existing-' + i,
+    data: {...template.data, eventName: 'Fictional event ' + i},
+  }));
+  const original = JSON.stringify(full);
+  app.stored.set(key, original);
+  const writes = app.writes();
+  const incoming = {format: 'feastlab-backup-v1', events: [{
+    ...template, key: 'synthetic-over-capacity',
+    data: {...template.data, eventName: 'Additional fictional event'},
+  }]};
+  await app.get('importFile').listeners.get('change')({target: {
+    files: [{size: 1000, text: async () => JSON.stringify(incoming)}],
+    value: 'selected.json',
+  }});
+  assert.equal(app.stored.get(key), original, 'Capacity error must preserve original bytes');
+  assert.equal(app.writes(), writes, 'Capacity error must not write storage');
+  assert.match(app.get('errorBox').textContent, /Import failed: Import exceeds the 100-event storage limit/);
+});
+
+test('malformed JSON backup never changes an existing saved event', async () => {
+  const app = createApp();
+  app.get('sampleEvent').click();
+  app.get('save').click();
+  const key = 'feastlab-private-v1';
+  const original = app.stored.get(key);
+  const writes = app.writes();
+  await app.get('importFile').listeners.get('change')({target: {
+    files: [{size: 40, text: async () => '{not valid JSON'}],
+    value: 'selected.json',
+  }});
+  assert.equal(app.stored.get(key), original);
+  assert.equal(app.writes(), writes);
+  assert.match(app.get('errorBox').textContent, /Import failed:/);
+});
