@@ -111,7 +111,7 @@ nav button.next{background:var(--teal);color:white}nav button:disabled{opacity:.
 const IDS=['eventName','eventDate','guests','margin','tax','discount','serviceFee','deposit','food','labor','overhead','other'];
 const DEFAULTS={eventName:'',eventDate:'',guests:'40',margin:'30',tax:'0',discount:'0',serviceFee:'0',deposit:'30',food:'240',labor:'150',overhead:'60',other:'39'};
 // Keep all event records on this device; no event details are transmitted to a server.
-const STORAGE='feastlab-private-v1';let step=0;let activeEventKey=null;let cleanForm=null;let lastInvalidField=null;
+const STORAGE='feastlab-private-v1';let step=0;let activeEventKey=null;let activeEventSnapshot=null;let cleanForm=null;let lastInvalidField=null;
 const $=id=>document.getElementById(id);
 const money=n=>new Intl.NumberFormat('en-US',{style:'currency',currency:'USD'}).format(n);
 const val=id=>$(id).value.trim();
@@ -206,10 +206,12 @@ function save(){if(!update())return;const d=capture();d.eventName=d.eventName.tr
 $('eventName').value=d.eventName;
 const list=loadAll();if(list===null)return;
 const idx=activeEventKey===null?-1:list.findIndex(x=>x&&x.key===activeEventKey);
+if(activeEventKey!==null&&idx<0){error('This saved event was deleted in another tab. Your edits remain in this form; copy them before starting a new event. Nothing was saved.');return;}
+if(idx>=0&&activeEventSnapshot!==null&&JSON.stringify(list[idx].data)!==activeEventSnapshot){error('This saved event changed in another tab. Your edits remain in this form; copy them before reloading the saved event. Nothing was overwritten.');return;}
 const key=idx>=0?activeEventKey:uniqueEventKey(list);
 const entry={key,updatedAt:new Date().toISOString(),data:d};
 if(idx>=0)list[idx]=entry;else if(list.length>=100){error('Saved-event limit reached (100). Export a backup before adding more; no existing events were deleted.');return;}else list.unshift(entry);
-if(storeAll(list)){activeEventKey=key;markClean();status('Event saved privately on this device. Export a backup for safekeeping.');renderSaved();}}
+if(storeAll(list)){activeEventKey=key;activeEventSnapshot=JSON.stringify(d);markClean();status('Event saved privately on this device. Export a backup for safekeeping.');renderSaved();}}
 function renderSaved(){
 const list=loadAll(),box=$('savedList');box.replaceChildren();
 if(list===null){const p=document.createElement('p');p.className='error';p.textContent='Saved events could not be read. Existing data was not changed. Saving and importing are disabled until storage is recovered.';box.append(p);return;}
@@ -226,7 +228,7 @@ name.append(title,detail);
 if(item.key===activeEventKey){row.classList.add('saved-current');const badge=document.createElement('span');badge.className='saved-tag';badge.textContent='Currently editing';name.append(badge);}
 const button=document.createElement('button');button.className='action';button.textContent='Load';button.type='button';
 button.setAttribute('aria-label','Load '+(item.data.eventName||'Untitled')+', '+date+', '+guests+' guests, reference '+item.key);
-button.addEventListener('click',()=>{if(!confirmDiscard())return;activeEventKey=item.key;apply(item.data);markClean();show(0);renderSaved();status('Saved event loaded: '+(item.data.eventName||'Untitled')+'.');});
+button.addEventListener('click',()=>{if(!confirmDiscard())return;activeEventKey=item.key;activeEventSnapshot=JSON.stringify(item.data);apply(item.data);markClean();show(0);renderSaved();status('Saved event loaded: '+(item.data.eventName||'Untitled')+'.');});
 const remove=document.createElement('button');remove.className='action danger';remove.textContent='Delete';remove.type='button';
 remove.setAttribute('aria-label','Delete '+(item.data.eventName||'Untitled')+', '+date+', reference '+item.key);
 remove.addEventListener('click',()=>deleteSavedEvent(item.key));
@@ -239,7 +241,7 @@ const list=loadAll();if(list===null)return false;
 const item=list.find(x=>x.key===key);if(!item){error('This saved event no longer exists. Nothing was deleted.');return false;}
 if(!window.confirm('Permanently delete "'+(item.data.eventName||'Untitled')+'" (reference '+key+') from this device? Export a backup first if you may need it again.'))return false;
 if(!storeAll(list.filter(x=>x.key!==key)))return false;
-if(activeEventKey===key)activeEventKey=null;
+if(activeEventKey===key){activeEventKey=null;activeEventSnapshot=null;}
 renderSaved();$('savedList').focus();status('Saved event deleted from this device. Other events were preserved.');return true;
 }
 function exportBackup(){const events=loadAll();if(events===null)return;const payload={format:'feastlab-backup-v1',exportedAt:new Date().toISOString(),events};const blob=new Blob([JSON.stringify(payload,null,2)],{type:'application/json'});const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download='feast-lab-events-backup.json';a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);status('Backup exported. Store it somewhere safe.');}
@@ -266,9 +268,9 @@ $('importFile').addEventListener('change',async e=>{const file=e.target.files[0]
 const current=loadAll();if(current===null)throw Error('Existing saved events are unreadable. Import blocked to prevent overwriting them.');const result=mergeBackupEvents(current,payload.events);if(storeAll(result.events)){renderSaved();status('Backup imported: '+result.added+' new event(s); '+result.skipped+' matching event(s) preserved without overwriting.');}}catch(err){error('Import failed: '+err.message);}finally{e.target.value='';$('importBackup').focus();}});
 $('recover').addEventListener('click',exportDamagedStorage);$('save').addEventListener('click',save);window.addEventListener('beforeprint',update);$('print').addEventListener('click',()=>{if(update())window.print();});$('export').addEventListener('click',exportBackup);
 // Start fresh from the first screen or the quote, without overwriting an existing event.
-function startNewEvent(){if(!confirmDiscard())return false;activeEventKey=null;apply(DEFAULTS);markClean();show(0);renderSaved();status('New event started. Saved events were not deleted.');return true;}
+function startNewEvent(){if(!confirmDiscard())return false;activeEventKey=null;activeEventSnapshot=null;apply(DEFAULTS);markClean();show(0);renderSaved();status('New event started. Saved events were not deleted.');return true;}
 // Fictional demonstration data stays in the form and is never saved automatically.
-function loadFictionalExample(){if(!confirmDiscard())return false;activeEventKey=null;apply({...DEFAULTS,eventName:'Fictional Community Dinner'});markClean();show(0);renderSaved();status('Fictional sample loaded. Nothing was saved; use Next to explore the quote.');return true;}
+function loadFictionalExample(){if(!confirmDiscard())return false;activeEventKey=null;activeEventSnapshot=null;apply({...DEFAULTS,eventName:'Fictional Community Dinner'});markClean();show(0);renderSaved();status('Fictional sample loaded. Nothing was saved; use Next to explore the quote.');return true;}
 $('newEvent').addEventListener('click',startNewEvent);$('sampleEvent').addEventListener('click',loadFictionalExample);$('clear').addEventListener('click',startNewEvent);
 document.addEventListener('keydown',e=>{if((e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==='s'){e.preventDefault();save();}});
 $('back').addEventListener('click',()=>show(step-1));$('next').addEventListener('click',()=>show(step+1));IDS.forEach(id=>$(id).addEventListener('input',update));
