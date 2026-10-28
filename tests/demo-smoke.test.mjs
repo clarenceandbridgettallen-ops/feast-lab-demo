@@ -566,3 +566,39 @@ test('successful backup retry clears a prior import error and preserves unsaved 
   assert.equal(app.get('eventName').value, 'Unsaved fictional draft');
   assert.equal(JSON.parse(app.stored.get(storageKey)).length, 2);
 });
+
+
+test('failed mobile backup file read releases import control without changing saved events', async () => {
+  const app = createApp();
+  app.get('sampleEvent').click();
+  app.get('save').click();
+  const storageKey = 'feastlab-private-v1';
+  const original = app.stored.get(storageKey);
+  const priorWrites = app.writes();
+  app.get('eventName').value = 'Unsaved fictional phone draft';
+  const input = app.get('importFile');
+  const onChange = input.listeners.get('change');
+  const selection = {target: {
+    files: [{size: 100, text: async () => { throw new Error('Synthetic file read interrupted'); }}],
+    value: 'unreadable.json',
+  }};
+  await onChange(selection);
+  assert.equal(app.stored.get(storageKey), original, 'Read failure must preserve saved bytes');
+  assert.equal(app.writes(), priorWrites, 'Read failure must not write storage');
+  assert.equal(app.get('eventName').value, 'Unsaved fictional phone draft');
+  assert.match(app.get('errorBox').textContent, /Import failed: Synthetic file read interrupted/);
+  assert.equal(app.get('importBackup').disabled, false, 'Import button must recover');
+  assert.equal(selection.target.value, '', 'File input must reset for retry');
+  const saved = JSON.parse(original)[0];
+  const valid = {format: 'feastlab-backup-v1', events: [{
+    ...saved, key: 'fictional-after-read-failure',
+    data: {...saved.data, eventName: 'Fictional recovered import'},
+  }]};
+  await onChange({target: {
+    files: [{size: 1000, text: async () => JSON.stringify(valid)}],
+    value: 'recovered.json',
+  }});
+  assert.equal(JSON.parse(app.stored.get(storageKey)).length, 2);
+  assert.equal(app.get('errorBox').textContent, '');
+  assert.equal(app.get('importBackup').disabled, false);
+});
