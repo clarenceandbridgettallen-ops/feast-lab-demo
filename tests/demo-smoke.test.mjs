@@ -107,7 +107,31 @@ test('valid backup adds new events but never overwrites matching saved identitie
   assert.equal(events.length, 2);
   assert.equal(events.find(x => x.key === original.key).data.eventName, original.data.eventName);
   assert.equal(events.find(x => x.key === 'imported-fictional-event').data.eventName, 'Another fictional event');
-  assert.match(app.get('status').textContent, /1 new event\(s\); 1 matching event\(s\) preserved/);
+  assert.match(app.get('status').textContent, /1 new event\(s\); 0 identical event\(s\) preserved/);
+  assert.match(app.get('status').textContent, /1 conflicting event\(s\) were NOT imported/);
+});
+
+test('same-ID identical backup is distinguished from conflicting backup without rewriting saved events', async () => {
+  const app = createApp();
+  app.get('sampleEvent').click();
+  app.get('save').click();
+  const key = 'feastlab-private-v1';
+  const original = app.stored.get(key);
+  const saved = JSON.parse(original)[0];
+  const onChange = app.get('importFile').listeners.get('change');
+  const importEvents = events => onChange({target: {
+    files: [{size: 1000, text: async () => JSON.stringify({format: 'feastlab-backup-v1', events})}],
+    value: 'synthetic-backup.json',
+  }});
+  const writes = app.writes();
+  await importEvents([saved]);
+  assert.match(app.get('status').textContent, /no new events to add/);
+  assert.doesNotMatch(app.get('status').textContent, /conflicting event/);
+  await importEvents([{...saved, data: {...saved.data, eventName: 'Different fictional name'}}]);
+  assert.match(app.get('status').textContent, /1 conflicting event\(s\) were NOT imported/);
+  assert.match(app.get('status').textContent, /Compare your backup/);
+  assert.equal(app.stored.get(key), original);
+  assert.equal(app.writes(), writes, 'Neither duplicate-only import may write browser storage');
 });
 
 test('invalid backup cannot alter an existing saved event', async () => {
