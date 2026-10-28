@@ -426,3 +426,45 @@ test('overlapping asynchronous backup imports cannot lose previously imported ev
   assert.ok(events.some(x => x.key === 'fictional-first'));
   assert.ok(events.some(x => x.key === 'fictional-second'));
 });
+
+
+test('backup import preserves an event saved by another tab while file is still reading', async () => {
+  const shared = new Map();
+  const importingTab = createApp(shared);
+  importingTab.get('sampleEvent').click();
+  importingTab.get('save').click();
+  const key = 'feastlab-private-v1';
+  const initial = JSON.parse(shared.get(key))[0];
+  let finishReading;
+  const delayedFile = {
+    size: 1000,
+    text: () => new Promise(resolve => { finishReading = resolve; }),
+  };
+  const importChange = importingTab.get('importFile').listeners.get('change');
+  const pending = importChange({target: {files: [delayedFile], value: 'fictional-backup.json'}});
+  assert.equal(importingTab.get('importBackup').disabled, true);
+
+  // Simulate a second same-origin tab saving a new event during the async read.
+  const otherTab = createApp(shared);
+  otherTab.get('sampleEvent').click();
+  otherTab.get('eventName').value = 'Fictional second-tab booking';
+  otherTab.get('save').click();
+  assert.equal(JSON.parse(shared.get(key)).length, 2);
+
+  const incoming = {
+    format: 'feastlab-backup-v1',
+    events: [{
+      ...initial,
+      key: 'fictional-delayed-import',
+      data: {...initial.data, eventName: 'Fictional imported booking'},
+    }],
+  };
+  finishReading(JSON.stringify(incoming));
+  await pending;
+  const after = JSON.parse(shared.get(key));
+  assert.equal(after.length, 3, 'Import must merge with latest saved records after file read');
+  assert.ok(after.some(e => e.key === initial.key), 'Original saved event remains');
+  assert.ok(after.some(e => e.data.eventName === 'Fictional second-tab booking'), 'Concurrent tab save remains');
+  assert.ok(after.some(e => e.key === 'fictional-delayed-import'), 'Import completes');
+  assert.equal(importingTab.get('importBackup').disabled, false);
+});
