@@ -259,3 +259,19 @@ test('deletion confirmation cannot erase a concurrent tab save', () => {
   assert.equal(app.writes(), writes, 'The stale confirmation must not write storage');
   assert.match(app.get('errorBox').textContent, /changed in another tab while confirming deletion/);
 });
+
+
+test('canceling a new-event or sample switch preserves unsaved catering edits', () => {
+  const app = createApp();
+  app.get('sampleEvent').click();
+  app.get('eventName').value = 'Fictional unsaved event edits';
+  const beforeWrites = app.writes();
+  let confirmations = 0;
+  app.window.confirm = () => { confirmations++; return false; };
+  app.get('newEvent').click();
+  assert.equal(app.get('eventName').value, 'Fictional unsaved event edits');
+  app.get('sampleEvent').click();
+  assert.equal(app.get('eventName').value, 'Fictional unsaved event edits');
+  assert.equal(confirmations, 2, 'Both destructive navigation paths must ask permission');
+  assert.equal(app.writes(), beforeWrites, 'Canceling must not touch saved-event storage');
+});
