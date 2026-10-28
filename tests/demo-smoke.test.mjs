@@ -26,7 +26,7 @@ function mockElement(id = '') {
   };
 }
 
-function createApp(sharedStorage = null) {
+function createApp(sharedStorage = null, urlApi = URL) {
   const ids = ['eventName','eventDate','guests','margin','tax','discount','serviceFee','deposit','food','labor','overhead','other'];
   const defaults = {guests:'40',margin:'30',tax:'0',discount:'0',serviceFee:'0',deposit:'30',food:'240',labor:'150',overhead:'60',other:'39'};
   const elements = new Map();
@@ -50,7 +50,7 @@ function createApp(sharedStorage = null) {
     createElement: () => mockElement(),
     addEventListener() {},
   };
-  vm.runInNewContext(source, {document, window, localStorage, Blob, URL, Intl, console, setTimeout, clearTimeout}, {timeout: 2000});
+  vm.runInNewContext(source, {document, window, localStorage, Blob, URL: urlApi, Intl, console, setTimeout, clearTimeout}, {timeout: 2000});
   return {get, stored, localStorage, window, windowEvents, writes: () => writes};
 }
 
@@ -349,4 +349,41 @@ test('backup import storage failure preserves existing records and allows a clea
   assert.equal(after.find(x => x.key === saved.key).data.eventName, saved.data.eventName);
   assert.equal(after.find(x => x.key === 'fictional-retry-import').data.eventName, 'Fictional retry booking');
   assert.equal(app.get('eventName').value, 'Unsaved draft survives import failure');
+});
+
+
+test('damaged local storage can be downloaded byte-for-byte without modifying saved records', async () => {
+  const downloads = [];
+  const app = createApp(null, {
+    createObjectURL(blob) { downloads.push(blob); return 'blob:fictional-recovery'; },
+    revokeObjectURL() {},
+  });
+  const key = 'feastlab-private-v1';
+  const damaged = '{"unfinished event": [do not overwrite these bytes';
+  app.stored.set(key, damaged);
+  const beforeWrites = app.writes();
+  app.get('recover').click();
+  assert.equal(downloads.length, 1, 'Recovery must create exactly one private download');
+  assert.equal(await downloads[0].text(), damaged, 'Recovery must preserve raw bytes, not parse or rewrite them');
+  assert.equal(app.stored.get(key), damaged, 'Existing damaged storage must remain untouched');
+  assert.equal(app.writes(), beforeWrites, 'Recovery must not write to local storage');
+  assert.match(app.get('status').textContent, /Raw storage downloaded/);
+});
+
+test('recovery download refuses to duplicate healthy saved-event storage', () => {
+  const downloads = [];
+  const app = createApp(null, {
+    createObjectURL(blob) { downloads.push(blob); return 'blob:should-not-be-created'; },
+    revokeObjectURL() {},
+  });
+  app.get('sampleEvent').click();
+  app.get('save').click();
+  const key = 'feastlab-private-v1';
+  const original = app.stored.get(key);
+  const beforeWrites = app.writes();
+  app.get('recover').click();
+  assert.equal(downloads.length, 0, 'Healthy records should use structured Export backup instead');
+  assert.equal(app.stored.get(key), original);
+  assert.equal(app.writes(), beforeWrites);
+  assert.match(app.get('status').textContent, /Saved events are readable/);
 });
