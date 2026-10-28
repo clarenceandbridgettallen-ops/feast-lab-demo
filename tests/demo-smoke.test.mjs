@@ -294,3 +294,29 @@ test('empty or duplicate-only backup imports do not rewrite existing local stora
     assert.match(app.get('status').textContent, /no new events to add/);
   }
 });
+
+test('storage quota failure preserves prior event and recoverable unsaved edits', () => {
+  const app = createApp();
+  app.get('sampleEvent').click();
+  app.get('save').click();
+  const key = 'feastlab-private-v1';
+  const original = app.stored.get(key);
+  const originalId = JSON.parse(original)[0].key;
+  const revisedName = 'Fictional update waiting for storage';
+  app.get('eventName').value = revisedName;
+  const originalSetItem = app.localStorage.setItem;
+  app.localStorage.setItem = () => { throw new Error('QuotaExceededError'); };
+  app.get('save').click();
+  assert.equal(app.stored.get(key), original, 'Failed save must not change stored bytes');
+  assert.match(app.get('errorBox').textContent, /Device storage is unavailable or full/);
+  const beforeUnload = {preventDefault() { this.prevented = true; }, returnValue: undefined};
+  app.windowEvents.get('beforeunload')(beforeUnload);
+  assert.equal(beforeUnload.prevented, true, 'Unsaved edits must still warn on exit');
+  assert.equal(beforeUnload.returnValue, '');
+  app.localStorage.setItem = originalSetItem;
+  app.get('save').click();
+  const updated = JSON.parse(app.stored.get(key));
+  assert.equal(updated.length, 1);
+  assert.equal(updated[0].key, originalId, 'Retry must preserve the saved identity');
+  assert.equal(updated[0].data.eventName, revisedName);
+});
