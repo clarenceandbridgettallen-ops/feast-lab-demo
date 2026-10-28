@@ -602,3 +602,28 @@ test('failed mobile backup file read releases import control without changing sa
   assert.equal(app.get('errorBox').textContent, '');
   assert.equal(app.get('importBackup').disabled, false);
 });
+
+test('oversized mobile backup is rejected before reading and preserves saved events and draft', async () => {
+  const app = createApp();
+  app.get('sampleEvent').click();
+  app.get('save').click();
+  const storageKey = 'feastlab-private-v1';
+  const original = app.stored.get(storageKey);
+  const priorWrites = app.writes();
+  app.get('eventName').value = 'Unsaved fictional oversized backup draft';
+  const input = app.get('importFile');
+  const onChange = input.listeners.get('change');
+  let reads = 0;
+  const selection = {target: {
+    files: [{size: 2000001, text: async () => { reads++; return '{}'; }}],
+    value: 'fictional-too-large.json',
+  }};
+  await onChange(selection);
+  assert.equal(reads, 0, 'Oversized files must be rejected before file.text is called');
+  assert.equal(app.stored.get(storageKey), original);
+  assert.equal(app.writes(), priorWrites);
+  assert.equal(app.get('eventName').value, 'Unsaved fictional oversized backup draft');
+  assert.match(app.get('errorBox').textContent, /Import failed: Backup exceeds 2 MB/);
+  assert.equal(app.get('importBackup').disabled, false);
+  assert.equal(selection.target.value, '');
+});
