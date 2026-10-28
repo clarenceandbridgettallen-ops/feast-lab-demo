@@ -257,11 +257,22 @@ status('Raw storage downloaded. Keep the file private. Browser storage was not c
 }catch{error('Could not create a recovery download. Browser storage was not changed.');return false;}
 }
 function mergeBackupEvents(current,incoming){
-const merged=new Map(current.map(x=>[x.key,x]));let added=0,skipped=0;
-incoming.forEach(x=>{const d=x.data,key=x.key||d.eventName+'|'+d.eventDate;if(merged.has(key)){skipped++;return;}
+const merged=new Map(current.map(x=>[x.key,x]));let added=0,skipped=0,conflicts=0;
+incoming.forEach(x=>{const d=x.data,key=x.key||d.eventName+'|'+d.eventDate;
+if(merged.has(key)){
+// A matching ID with different details is a conflict, not a successful match.
+// Keep the saved version unchanged and explicitly tell the owner what was skipped.
+if(IDS.some(id=>String(merged.get(key).data[id]??'')!==String(d[id]??'')))conflicts++;else skipped++;
+return;
+}
 merged.set(key,{key,updatedAt:x.updatedAt||new Date().toISOString(),data:d});added++;});
 if(merged.size>100)throw Error('Import exceeds the 100-event storage limit. No saved events were changed. Export a backup and use a smaller import.');
-return {events:Array.from(merged.values()),added,skipped};
+return {events:Array.from(merged.values()),added,skipped,conflicts};
+}
+function importSummary(result){
+const details=result.conflicts?' '+result.conflicts+' conflicting event(s) were NOT imported; the existing saved version was kept. Compare your backup before deleting anything.':'';
+return result.added===0?'Backup checked: no new events to add. Existing saved events were preserved without rewriting storage.'+details:
+'Backup imported: '+result.added+' new event(s); '+result.skipped+' identical event(s) preserved.'+details;
 }
 function validBackupEvent(x){if(!x||typeof x!=='object'||!x.data||typeof x.data!=='object'||typeof x.key!=='string'||!x.key||x.key.length>200)return false;try{if(typeof x.data.eventName!=='string'||x.data.eventName.length>100)return false;calculate(x.data);return true;}catch{return false;}}
 // The visible button is keyboard-focusable; the hidden file input is not.
@@ -270,7 +281,7 @@ function validBackupEvent(x){if(!x||typeof x!=='object'||!x.data||typeof x.data!
 let importInProgress=false;
 $('importBackup').addEventListener('click',()=>{if(!importInProgress)$('importFile').click();});
 $('importFile').addEventListener('change',async e=>{const file=e.target.files[0];if(!file||importInProgress)return;importInProgress=true;$('importBackup').disabled=true;try{if(file.size>2000000)throw Error('Backup exceeds 2 MB.');const payload=JSON.parse(await file.text());if(payload.format!=='feastlab-backup-v1'||!Array.isArray(payload.events)||payload.events.length>100||!payload.events.every(validBackupEvent)||new Set(payload.events.map(x=>x.key)).size!==payload.events.length)throw Error('Backup format or event data is invalid.');
-const current=loadAll();if(current===null)throw Error('Existing saved events are unreadable. Import blocked to prevent overwriting them.');const result=mergeBackupEvents(current,payload.events);if(result.added===0){renderSaved();status('Backup checked: no new events to add. Existing saved events were preserved without rewriting storage.');}else if(storeAll(result.events)){renderSaved();status('Backup imported: '+result.added+' new event(s); '+result.skipped+' matching event(s) preserved without overwriting.');}}catch(err){error('Import failed: '+err.message);}finally{importInProgress=false;$('importBackup').disabled=false;e.target.value='';$('importBackup').focus();}});
+const current=loadAll();if(current===null)throw Error('Existing saved events are unreadable. Import blocked to prevent overwriting them.');const result=mergeBackupEvents(current,payload.events);if(result.added===0){renderSaved();status(importSummary(result));}else if(storeAll(result.events)){renderSaved();status(importSummary(result));}}catch(err){error('Import failed: '+err.message);}finally{importInProgress=false;$('importBackup').disabled=false;e.target.value='';$('importBackup').focus();}});
 $('recover').addEventListener('click',exportDamagedStorage);$('save').addEventListener('click',save);window.addEventListener('beforeprint',update);$('print').addEventListener('click',()=>{if(update())window.print();});$('export').addEventListener('click',exportBackup);
 // Start fresh from the first screen or the quote, without overwriting an existing event.
 function startNewEvent(){if(!confirmDiscard())return false;activeEventKey=null;activeEventSnapshot=null;apply(DEFAULTS);markClean();show(0);renderSaved();status('New event started. Saved events were not deleted.');return true;}
