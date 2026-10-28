@@ -275,3 +275,22 @@ test('canceling a new-event or sample switch preserves unsaved catering edits', 
   assert.equal(confirmations, 2, 'Both destructive navigation paths must ask permission');
   assert.equal(app.writes(), beforeWrites, 'Canceling must not touch saved-event storage');
 });
+
+test('empty or duplicate-only backup imports do not rewrite existing local storage', async () => {
+  const app = createApp();
+  app.get('sampleEvent').click();
+  app.get('save').click();
+  const key = 'feastlab-private-v1';
+  const original = app.stored.get(key);
+  const existing = JSON.parse(original)[0];
+  for (const events of [[], [{...existing, data: {...existing.data, eventName: 'Conflicting duplicate'}}]]) {
+    const beforeWrites = app.writes();
+    await app.get('importFile').listeners.get('change')({target: {
+      files: [{size: 1000, text: async () => JSON.stringify({format: 'feastlab-backup-v1', events})}],
+      value: 'backup.json',
+    }});
+    assert.equal(app.stored.get(key), original, 'No-op import must preserve original storage bytes');
+    assert.equal(app.writes(), beforeWrites, 'No-op import must not write browser storage');
+    assert.match(app.get('status').textContent, /no new events to add/);
+  }
+});
