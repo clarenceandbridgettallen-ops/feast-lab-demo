@@ -541,3 +541,28 @@ test('duplicate IDs inside one backup are rejected atomically and a later valid 
   assert.equal(after.find(x => x.key === original.key).data.eventName, original.data.eventName);
   assert.equal(after.find(x => x.key === 'fictional-retry-after-rejection').data.eventName, 'Fictional retry');
 });
+
+
+test('successful backup retry clears a prior import error and preserves unsaved form edits', async () => {
+  const app = createApp();
+  app.get('sampleEvent').click();
+  app.get('save').click();
+  const storageKey = 'feastlab-private-v1';
+  const saved = JSON.parse(app.stored.get(storageKey))[0];
+  const importFile = app.get('importFile');
+  const onChange = importFile.listeners.get('change');
+  await onChange({target: {files: [{size: 20, text: async () => '{broken JSON'}], value: 'invalid.json'}});
+  assert.match(app.get('errorBox').textContent, /Import failed:/);
+  assert.equal(app.get('errorBox').classList.contains('hidden'), false);
+  app.get('eventName').value = 'Unsaved fictional draft';
+  const incoming = {format: 'feastlab-backup-v1', events: [{
+    ...saved, key: 'synthetic-retry-success',
+    data: {...saved.data, eventName: 'New fictional booking'},
+  }]};
+  await onChange({target: {files: [{size: 1000, text: async () => JSON.stringify(incoming)}], value: 'valid.json'}});
+  assert.equal(app.get('errorBox').textContent, '', 'Old import failure must not remain visible after success');
+  assert.equal(app.get('errorBox').classList.contains('hidden'), true);
+  assert.match(app.get('status').textContent, /Backup imported: 1 new event/);
+  assert.equal(app.get('eventName').value, 'Unsaved fictional draft');
+  assert.equal(JSON.parse(app.stored.get(storageKey)).length, 2);
+});
