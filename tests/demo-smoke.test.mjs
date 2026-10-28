@@ -468,3 +468,27 @@ test('backup import preserves an event saved by another tab while file is still 
   assert.ok(after.some(e => e.key === 'fictional-delayed-import'), 'Import completes');
   assert.equal(importingTab.get('importBackup').disabled, false);
 });
+
+
+test('backup import refuses corrupted storage introduced during a delayed file read', async () => {
+  const shared = new Map();
+  const app = createApp(shared);
+  app.get('sampleEvent').click();
+  app.get('save').click();
+  const key = 'feastlab-private-v1';
+  const existing = JSON.parse(shared.get(key))[0];
+  let finishReading;
+  const file = {size: 1000, text: () => new Promise(resolve => { finishReading = resolve; })};
+  const pending = app.get('importFile').listeners.get('change')({target: {files: [file], value: 'fictional-delayed.json'}});
+  const damaged = '{"damaged storage": [unreadable';
+  shared.set(key, damaged);
+  const incoming = {format: 'feastlab-backup-v1', events: [{
+    ...existing, key: 'fictional-never-imported',
+    data: {...existing.data, eventName: 'Fictional import blocked by damage'},
+  }]};
+  finishReading(JSON.stringify(incoming));
+  await pending;
+  assert.equal(shared.get(key), damaged, 'Import must preserve corrupted bytes for recovery');
+  assert.match(app.get('errorBox').textContent, /Existing saved events are unreadable/);
+  assert.equal(app.get('importBackup').disabled, false, 'Import control must recover after rejection');
+});
