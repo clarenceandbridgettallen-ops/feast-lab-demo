@@ -320,3 +320,33 @@ test('storage quota failure preserves prior event and recoverable unsaved edits'
   assert.equal(updated[0].key, originalId, 'Retry must preserve the saved identity');
   assert.equal(updated[0].data.eventName, revisedName);
 });
+
+
+test('backup import storage failure preserves existing records and allows a clean retry', async () => {
+  const app = createApp();
+  app.get('sampleEvent').click();
+  app.get('save').click();
+  const key = 'feastlab-private-v1';
+  const before = app.stored.get(key);
+  const saved = JSON.parse(before)[0];
+  const incoming = {format: 'feastlab-backup-v1', events: [{
+    ...saved, key: 'fictional-retry-import',
+    data: {...saved.data, eventName: 'Fictional retry booking'},
+  }]};
+  const file = {size: 1000, text: async () => JSON.stringify(incoming)};
+  const importFile = app.get('importFile');
+  app.get('eventName').value = 'Unsaved draft survives import failure';
+  const originalSetItem = app.localStorage.setItem;
+  app.localStorage.setItem = () => { throw new Error('QuotaExceededError'); };
+  await importFile.listeners.get('change')({target: {files: [file], value: 'backup.json'}});
+  assert.equal(app.stored.get(key), before, 'Quota failure must preserve original saved bytes');
+  assert.equal(app.get('eventName').value, 'Unsaved draft survives import failure');
+  assert.match(app.get('errorBox').textContent, /Device storage is unavailable or full/);
+  app.localStorage.setItem = originalSetItem;
+  await importFile.listeners.get('change')({target: {files: [file], value: 'backup.json'}});
+  const after = JSON.parse(app.stored.get(key));
+  assert.equal(after.length, 2, 'Retry must add exactly one new event');
+  assert.equal(after.find(x => x.key === saved.key).data.eventName, saved.data.eventName);
+  assert.equal(after.find(x => x.key === 'fictional-retry-import').data.eventName, 'Fictional retry booking');
+  assert.equal(app.get('eventName').value, 'Unsaved draft survives import failure');
+});
