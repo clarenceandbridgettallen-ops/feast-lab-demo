@@ -516,3 +516,28 @@ test('backup import refuses corrupted storage introduced during a delayed file r
   assert.match(app.get('errorBox').textContent, /Existing saved events are unreadable/);
   assert.equal(app.get('importBackup').disabled, false, 'Import control must recover after rejection');
 });
+
+test('duplicate IDs inside one backup are rejected atomically and a later valid import still works', async () => {
+  const app = createApp();
+  app.get('sampleEvent').click();
+  app.get('save').click();
+  const key = 'feastlab-private-v1';
+  const before = app.stored.get(key);
+  const original = JSON.parse(before)[0];
+  const writesBefore = app.writes();
+  const onChange = app.get('importFile').listeners.get('change');
+  const importEvents = events => onChange({target: {
+    files: [{size: 1000, text: async () => JSON.stringify({format: 'feastlab-backup-v1', events})}],
+    value: 'synthetic-duplicate-ids.json',
+  }});
+  await importEvents([original, {...original, data: {...original.data, eventName: 'Conflicting duplicate'}}]);
+  assert.equal(app.stored.get(key), before, 'Invalid duplicate IDs must not overwrite saved data');
+  assert.equal(app.writes(), writesBefore, 'Invalid import must not write browser storage');
+  assert.match(app.get('errorBox').textContent, /Backup format or event data is invalid/);
+  assert.equal(app.get('importBackup').disabled, false, 'Import button must recover');
+  await importEvents([{...original, key: 'fictional-retry-after-rejection', data: {...original.data, eventName: 'Fictional retry'}}]);
+  const after = JSON.parse(app.stored.get(key));
+  assert.equal(after.length, 2, 'Valid later import should succeed');
+  assert.equal(after.find(x => x.key === original.key).data.eventName, original.data.eventName);
+  assert.equal(after.find(x => x.key === 'fictional-retry-after-rejection').data.eventName, 'Fictional retry');
+});
