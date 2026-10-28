@@ -387,3 +387,42 @@ test('recovery download refuses to duplicate healthy saved-event storage', () =>
   assert.equal(app.writes(), beforeWrites);
   assert.match(app.get('status').textContent, /Saved events are readable/);
 });
+
+
+test('overlapping asynchronous backup imports cannot lose previously imported events', async () => {
+  const app = createApp();
+  app.get('sampleEvent').click();
+  app.get('save').click();
+  const key = 'feastlab-private-v1';
+  const saved = JSON.parse(app.stored.get(key))[0];
+  const makeBackup = (id, name) => JSON.stringify({
+    format: 'feastlab-backup-v1',
+    events: [{...saved, key: id, data: {...saved.data, eventName: name}}],
+  });
+  let releaseFirst;
+  const firstFile = {size: 1000, text: () => new Promise(resolve => { releaseFirst = resolve; })};
+  let secondReads = 0;
+  const secondFile = {size: 1000, text: async () => {
+    secondReads++;
+    return makeBackup('fictional-second', 'Fictional second');
+  }};
+  const onChange = app.get('importFile').listeners.get('change');
+  const first = onChange({target: {files: [firstFile], value: 'first.json'}});
+  assert.equal(app.get('importBackup').disabled, true, 'Import button disabled while reading');
+  await onChange({target: {files: [secondFile], value: 'second.json'}});
+  assert.equal(secondReads, 0, 'Overlapping file must not be read or imported');
+  assert.equal(JSON.parse(app.stored.get(key)).length, 1, 'Pending import cannot change saved events');
+  releaseFirst(makeBackup('fictional-first', 'Fictional first'));
+  await first;
+  assert.equal(app.get('importBackup').disabled, false, 'Import button reenabled');
+  let events = JSON.parse(app.stored.get(key));
+  assert.equal(events.length, 2);
+  assert.ok(events.some(x => x.key === 'fictional-first'));
+  await onChange({target: {files: [secondFile], value: 'second.json'}});
+  events = JSON.parse(app.stored.get(key));
+  assert.equal(secondReads, 1);
+  assert.equal(events.length, 3, 'Later intentional import must preserve the first import');
+  assert.ok(events.some(x => x.key === saved.key));
+  assert.ok(events.some(x => x.key === 'fictional-first'));
+  assert.ok(events.some(x => x.key === 'fictional-second'));
+});
