@@ -627,3 +627,19 @@ test('oversized mobile backup is rejected before reading and preserves saved eve
   assert.equal(app.get('importBackup').disabled, false);
   assert.equal(selection.target.value, '');
 });
+
+test('beforeunload warns only for unsaved edits without writing private storage', () => {
+  const app = createApp();
+  const handler = app.windowEvents.get('beforeunload');
+  assert.equal(typeof handler, 'function');
+  const makeEvent = () => ({prevented: false, preventDefault(){this.prevented = true;}, returnValue: undefined});
+  const clean = makeEvent();
+  handler(clean);
+  assert.equal(clean.prevented, false, 'Clean form should not block navigation');
+  app.get('eventName').value = 'Fictional unsaved quote';
+  const dirty = makeEvent();
+  handler(dirty);
+  assert.equal(dirty.prevented, true, 'Unsaved changes must warn before leaving');
+  assert.equal(dirty.returnValue, '');
+  assert.equal(app.writes(), 0, 'Exit warning must not save customer data');
+});
