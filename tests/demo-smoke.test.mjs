@@ -643,3 +643,46 @@ test('beforeunload warns only for unsaved edits without writing private storage'
   assert.equal(dirty.returnValue, '');
   assert.equal(app.writes(), 0, 'Exit warning must not save customer data');
 });
+
+test('stale saved-event Load card preserves unsaved edits after another tab changes the event', () => {
+  const shared = new Map();
+  const first = createApp(shared);
+  first.get('sampleEvent').click();
+  first.get('save').click();
+  const second = createApp(shared);
+  const staleLoad = second.get('savedList').children[0].children[1];
+  first.get('eventName').value = 'Fictional newer tab revision';
+  first.get('save').click();
+  second.get('eventName').value = 'Unsaved draft in second tab';
+  const before = shared.get('feastlab-private-v1');
+  const writes = second.writes();
+  staleLoad.click();
+  assert.equal(second.get('eventName').value, 'Unsaved draft in second tab');
+  assert.equal(shared.get('feastlab-private-v1'), before);
+  assert.equal(second.writes(), writes);
+  assert.match(second.get('errorBox').textContent, /changed or disappeared in another tab/);
+});
+
+test('saved-event Load rechecks the revision after an unsaved-changes confirmation', () => {
+  const shared = new Map();
+  const first = createApp(shared);
+  first.get('sampleEvent').click();
+  first.get('save').click();
+  const second = createApp(shared);
+  const staleLoad = second.get('savedList').children[0].children[1];
+  second.get('eventName').value = 'Keep this unsaved fictional draft';
+  let confirmations = 0;
+  second.window.confirm = () => {
+    confirmations++;
+    first.get('eventName').value = 'Fictional edit while confirming';
+    first.get('save').click();
+    return true;
+  };
+  const writes = second.writes();
+  staleLoad.click();
+  assert.equal(confirmations, 1);
+  assert.equal(second.get('eventName').value, 'Keep this unsaved fictional draft');
+  assert.equal(second.writes(), writes);
+  assert.equal(JSON.parse(shared.get('feastlab-private-v1'))[0].data.eventName, 'Fictional edit while confirming');
+  assert.match(second.get('errorBox').textContent, /changed or disappeared while confirming/);
+});

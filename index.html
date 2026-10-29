@@ -212,6 +212,19 @@ const key=idx>=0?activeEventKey:uniqueEventKey(list);
 const entry={key,updatedAt:new Date().toISOString(),data:d};
 if(idx>=0)list[idx]=entry;else if(list.length>=100){error('Saved-event limit reached (100). Export a backup before adding more; no existing events were deleted.');return;}else list.unshift(entry);
 if(storeAll(list)){activeEventKey=key;activeEventSnapshot=JSON.stringify(d);markClean();status('Event saved privately on this device. Export a backup for safekeeping.');renderSaved();}}
+// A saved-event card may be stale if another tab edited or deleted it.
+function loadSavedEvent(key,expectedRevision){
+ const current=loadAll();if(current===null)return false;
+ const item=current.find(x=>x.key===key);
+ if(!item||JSON.stringify(item)!==expectedRevision){error('This saved event changed or disappeared in another tab. Refresh the list before loading it. Your current form was preserved.');renderSaved();return false;}
+ if(!confirmDiscard())return false;
+ // Confirmation may leave this tab suspended while another tab saves.
+ const latest=loadAll();if(latest===null)return false;
+ const selected=latest.find(x=>x.key===key);
+ if(!selected||JSON.stringify(selected)!==expectedRevision){error('This saved event changed or disappeared while confirming. Your current form was preserved.');renderSaved();return false;}
+ activeEventKey=key;activeEventSnapshot=JSON.stringify(selected.data);
+ apply(selected.data);markClean();show(0);renderSaved();status('Saved event loaded: '+(selected.data.eventName||'Untitled')+'.');return true;
+}
 function renderSaved(){
 const list=loadAll(),box=$('savedList');box.replaceChildren();
 if(list===null){const p=document.createElement('p');p.className='error';p.textContent='Saved events could not be read. Existing data was not changed. Saving and importing are disabled until storage is recovered.';box.append(p);return;}
@@ -228,7 +241,7 @@ name.append(title,detail);
 if(item.key===activeEventKey){row.classList.add('saved-current');const badge=document.createElement('span');badge.className='saved-tag';badge.textContent='Currently editing';name.append(badge);}
 const button=document.createElement('button');button.className='action';button.textContent='Load';button.type='button';
 button.setAttribute('aria-label','Load '+(item.data.eventName||'Untitled')+', '+date+', '+guests+' guests, reference '+item.key);
-button.addEventListener('click',()=>{if(!confirmDiscard())return;activeEventKey=item.key;activeEventSnapshot=JSON.stringify(item.data);apply(item.data);markClean();show(0);renderSaved();status('Saved event loaded: '+(item.data.eventName||'Untitled')+'.');});
+button.addEventListener('click',()=>loadSavedEvent(item.key,JSON.stringify(item)));
 const remove=document.createElement('button');remove.className='action danger';remove.textContent='Delete';remove.type='button';
 remove.setAttribute('aria-label','Delete '+(item.data.eventName||'Untitled')+', '+date+', reference '+item.key);
 remove.addEventListener('click',()=>deleteSavedEvent(item.key));
