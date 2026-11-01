@@ -686,3 +686,34 @@ test('saved-event Load rechecks the revision after an unsaved-changes confirmati
   assert.equal(JSON.parse(shared.get('feastlab-private-v1'))[0].data.eventName, 'Fictional edit while confirming');
   assert.match(second.get('errorBox').textContent, /changed or disappeared while confirming/);
 });
+
+
+test('backup import rejects unnamed new events but still reads legacy unnamed saved events', async () => {
+  const app = createApp();
+  app.get('sampleEvent').click();
+  app.get('save').click();
+  const key = 'feastlab-private-v1';
+  const before = app.stored.get(key);
+  const original = JSON.parse(before)[0];
+  const writes = app.writes();
+  const incoming = {format: 'feastlab-backup-v1', events: [{
+    ...original, key: 'fictional-blank-import',
+    data: {...original.data, eventName: '   '},
+  }]};
+  await app.get('importFile').listeners.get('change')({target: {
+    files: [{size: 1000, text: async () => JSON.stringify(incoming)}],
+    value: 'fictional-backup.json',
+  }});
+  assert.equal(app.stored.get(key), before, 'Invalid import must preserve original bytes');
+  assert.equal(app.writes(), writes, 'Invalid import must not write storage');
+  assert.match(app.get('errorBox').textContent, /Backup format or event data is invalid/);
+
+  // Older on-device records may already have blank names. Do not make them unreadable.
+  const legacy = new Map([[key, JSON.stringify([{
+    ...original, key: 'legacy-blank-name',
+    data: {...original.data, eventName: '   '},
+  }])]]);
+  const reopened = createApp(legacy);
+  assert.equal(reopened.get('savedList').children.length, 1);
+  assert.doesNotMatch(reopened.get('errorBox').textContent, /unreadable/);
+});
