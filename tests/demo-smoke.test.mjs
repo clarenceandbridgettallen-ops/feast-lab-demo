@@ -717,3 +717,40 @@ test('backup import rejects unnamed new events but still reads legacy unnamed sa
   assert.equal(reopened.get('savedList').children.length, 1);
   assert.doesNotMatch(reopened.get('errorBox').textContent, /unreadable/);
 });
+
+
+test('backup import validates optional calendar dates without rewriting saved records', async () => {
+  const app = createApp();
+  app.get('sampleEvent').click();
+  app.get('save').click();
+  const storageKey = 'feastlab-private-v1';
+  const original = JSON.parse(app.stored.get(storageKey))[0];
+  const importOne = async (date, key) => {
+    const payload = {format:'feastlab-backup-v1', events:[{
+      ...original, key, data:{...original.data, eventName:'Fictional date check', eventDate:date},
+    }]};
+    await app.get('importFile').listeners.get('change')({target:{
+      files:[{size:1000, text:async () => JSON.stringify(payload)}], value:'fictional-date.json',
+    }});
+  };
+  for (const [i, date] of [null, {}, '2026-02-29', '2026-04-31', '2026-13-01', '2026-1-1'].entries()) {
+    const before = app.stored.get(storageKey);
+    const writes = app.writes();
+    await importOne(date, 'fictional-invalid-date-'+i);
+    assert.equal(app.stored.get(storageKey), before, 'Invalid date must not modify stored bytes');
+    assert.equal(app.writes(), writes, 'Invalid date must not write storage');
+    assert.match(app.get('errorBox').textContent, /Backup format or event data is invalid/);
+  }
+  await importOne('2028-02-29', 'fictional-valid-leap-day');
+  assert.equal(JSON.parse(app.stored.get(storageKey)).length, 2, 'Valid leap day imports');
+  await importOne('', 'fictional-optional-date');
+  assert.equal(JSON.parse(app.stored.get(storageKey)).length, 3, 'Blank optional date imports');
+
+  // Existing saved data is not an import: preserve legacy records without a valid date.
+  const legacy = new Map([[storageKey, JSON.stringify([{
+    ...original, key:'fictional-legacy-date', data:{...original.data, eventDate:'legacy date text'},
+  }])]]);
+  const reopened = createApp(legacy);
+  assert.equal(reopened.get('savedList').children.length, 1);
+  assert.doesNotMatch(reopened.get('errorBox').textContent, /unreadable/);
+});
