@@ -288,7 +288,16 @@ return result.added===0?'Backup checked: no new events to add. Existing saved ev
 'Backup imported: '+result.added+' new event(s); '+result.skipped+' identical event(s) preserved.'+details;
 }
 // New imports require a usable name; legacy saved records stay readable.
-function validImportEvent(x){return validBackupEvent(x)&&x.data.eventName.trim().length>0;}
+function validOptionalEventDate(value){
+if(typeof value!=='string')return false;
+if(value==='')return true;
+if(!/^\\d{4}-(0[1-9]|1[0-2])-(0[1-9]|[12]\\d|3[01])$/.test(value))return false;
+const [year,month,day]=value.split('-').map(Number);
+const leap=year%4===0&&(year%100!==0||year%400===0);
+const days=[31,leap?29:28,31,30,31,30,31,31,30,31,30,31];
+return day<=days[month-1];
+}
+function validImportEvent(x){return validBackupEvent(x)&&x.data.eventName.trim().length>0&&validOptionalEventDate(x.data.eventDate);}
 function validBackupEvent(x){if(!x||typeof x!=='object'||!x.data||typeof x.data!=='object'||typeof x.key!=='string'||!x.key||x.key.length>200)return false;try{if(typeof x.data.eventName!=='string'||x.data.eventName.length>100)return false;calculate(x.data);return true;}catch{return false;}}
 // The visible button is keyboard-focusable; the hidden file input is not.
 // Only one asynchronous backup read may be imported at a time. Overlapping file reads
