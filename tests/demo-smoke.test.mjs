@@ -781,3 +781,49 @@ test('blocked backup download does not claim success or alter fictional saved ev
   assert.doesNotMatch(app.get('status').textContent, /Backup exported/);
   assert.equal(app.stored.get('feastlab-private-v1'), before);
 });
+
+
+test('import rejects nested array numeric fields without touching existing saved events', async () => {
+  const app = createApp();
+  app.get('sampleEvent').click();
+  app.get('save').click();
+  const key = 'feastlab-private-v1';
+  const original = app.stored.get(key);
+  const template = JSON.parse(original)[0];
+  const writes = app.writes();
+  const onChange = app.get('importFile').listeners.get('change');
+  for (const field of ['guests', 'food']) {
+    const payload = {format: 'feastlab-backup-v1', events: [{
+      ...template, key: 'fictional-nested-' + field,
+      data: {...template.data, eventName: 'Fictional Array ' + field,
+        [field]: [template.data[field]]},
+    }]};
+    await onChange({target: {files: [{
+      size: 1000, text: async () => JSON.stringify(payload),
+    }], value: 'fictional-corrupt-backup.json'}});
+    assert.equal(app.stored.get(key), original, 'Existing records must remain byte-identical');
+    assert.equal(app.writes(), writes, 'Invalid backup must not write storage');
+    assert.match(app.get('errorBox').textContent, /Backup format or event data is invalid/);
+  }
+});
+
+test('import preserves compatibility with finite numeric primitive backup fields', async () => {
+  const app = createApp();
+  app.get('sampleEvent').click();
+  app.get('save').click();
+  const key = 'feastlab-private-v1';
+  const template = JSON.parse(app.stored.get(key))[0];
+  const incoming = {format: 'feastlab-backup-v1', events: [{
+    ...template, key: 'fictional-numeric-primitive',
+    data: {...template.data, eventName: 'Fictional Numeric Backup',
+      guests: 40, food: 240},
+  }]};
+  await app.get('importFile').listeners.get('change')({target: {
+    files: [{size: 1000, text: async () => JSON.stringify(incoming)}],
+    value: 'fictional-numeric-backup.json',
+  }});
+  const saved = JSON.parse(app.stored.get(key));
+  assert.equal(saved.length, 2);
+  assert.equal(saved.find(x => x.key === 'fictional-numeric-primitive').data.guests, 40);
+  assert.match(app.get('status').textContent, /1 new event\(s\)/);
+});
