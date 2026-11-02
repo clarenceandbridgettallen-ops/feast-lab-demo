@@ -90,6 +90,23 @@ try {
     'Fictional Test Reception');
   console.log('PASS: real file-input import preserves existing identity and adds fictional event');
 
+  // Conflict regression: same stable ID but different content must NEVER
+  // overwrite the owner's already saved fictional event, even with a newer timestamp.
+  const beforeConflict = await page.evaluate(key => localStorage.getItem(key), STORAGE);
+  const conflicting = {...imported, updatedAt:new Date(Date.now()+86400000).toISOString(),
+    data:{...imported.data, eventName:'Fictional Conflicting Rename'}};
+  await page.locator('#importFile').setInputFiles({
+    name:'fictional-conflict.json', mimeType:'application/json',
+    buffer:Buffer.from(JSON.stringify({format:'feastlab-backup-v1',events:[conflicting]}))
+  });
+  await page.waitForFunction(() =>
+    document.querySelector('#status').textContent.includes('conflicting event(s)'),
+    null, {timeout:10000});
+  assert.equal(await page.evaluate(key => localStorage.getItem(key), STORAGE),
+    beforeConflict, 'Conflicting import must not rewrite the existing event');
+  assert.equal(await page.locator('#importBackup').isDisabled(), false);
+  console.log('PASS: same-ID conflict preserves existing event without rewriting storage');
+
   // Exercise the real file input on a malformed backup. A rejected import must
   // never replace existing fictional records or strand the import button.
   const beforeRejected = await page.evaluate(key => localStorage.getItem(key), STORAGE);
@@ -165,7 +182,7 @@ try {
   assert.deepEqual(unexpectedRequests, [],
     'Fictional demo must make no off-origin HTTP(S) requests during browser QA');
   console.log('PASS: restrictive CSP declared and no off-origin HTTP(S) requests across real browser flows');
-  console.log('RESULT: 10/10 actual Chromium flows passed, fictional data only');
+  console.log('RESULT: 11/11 actual Chromium flows passed, fictional data only');
 } finally {
   if (browser) await browser.close();
   await new Promise(resolveClose => server.close(resolveClose));
