@@ -299,7 +299,7 @@ const leap=year%4===0&&(year%100!==0||year%400===0);
 const days=[31,leap?29:28,31,30,31,30,31,31,30,31,30,31];
 return day<=days[month-1];
 }
-function validImportEvent(x){return validBackupEvent(x)&&x.data.eventName.trim().length>0&&validOptionalEventDate(x.data.eventDate)&&IDS.every(id=>id==='eventName'||id==='eventDate'||(typeof x.data[id]==='string'||typeof x.data[id]==='number'));}
+function validImportEvent(x){return validBackupEvent(x)&&x.data.eventName.trim().length>0&&validOptionalEventDate(x.data.eventDate)&&IDS.every(id=>id==='eventName'||id==='eventDate'||(typeof x.data[id]==='string'||typeof x.data[id]==='number'))&&(x.updatedAt==null||(typeof x.updatedAt==='string'&&x.updatedAt.length<=128));}
 function validBackupEvent(x){if(!x||typeof x!=='object'||!x.data||typeof x.data!=='object'||typeof x.key!=='string'||!x.key||x.key.length>200)return false;try{if(typeof x.data.eventName!=='string'||x.data.eventName.length>100)return false;calculate(x.data);return true;}catch{return false;}}
 // The visible button is keyboard-focusable; the hidden file input is not.
 // Only one asynchronous backup read may be imported at a time. Overlapping file reads
