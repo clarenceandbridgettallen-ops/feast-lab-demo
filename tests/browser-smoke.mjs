@@ -96,7 +96,42 @@ try {
     'Unsaved work in another tab');
   assert.equal((await secondTab.evaluate(key => JSON.parse(localStorage.getItem(key)), STORAGE)).length, 3);
   console.log('PASS: cross-tab storage notification does not erase unsaved form edits');
-  console.log('RESULT: 6/6 actual Chromium flows passed, fictional data only');
+  // Separate mobile/touch context. Still local fictional-data HTML, not a live-site or Android claim.
+  const mobileContext = await browser.newContext({
+    viewport:{width:390,height:844}, isMobile:true, hasTouch:true
+  });
+  try {
+    const mobile = await mobileContext.newPage();
+    await mobile.goto(origin);
+    const mobileMetrics = await mobile.evaluate(() => ({
+      viewport: window.innerWidth,
+      scrollWidth: document.documentElement.scrollWidth
+    }));
+    assert.ok(mobileMetrics.scrollWidth <= mobileMetrics.viewport + 1,
+      'Mobile demo must not require horizontal page scrolling: ' + JSON.stringify(mobileMetrics));
+    for (const id of ['sampleEvent','next']) {
+      const size = await mobile.locator('#' + id).evaluate(el => {
+        const box = el.getBoundingClientRect();
+        return {width:box.width,height:box.height};
+      });
+      assert.ok(size.width >= 44 && size.height >= 44,
+        id + ' touch target must be at least 44x44: ' + JSON.stringify(size));
+    }
+    console.log('PASS: 390px emulated touch viewport has no horizontal overflow and primary targets meet 44px');
+
+    await mobile.locator('#sampleEvent').click();
+    await mobile.locator('#next').click();
+    await mobile.locator('#next').click();
+    await mobile.emulateMedia({media:'print'});
+    assert.equal(await mobile.locator('header').isVisible(), false);
+    assert.equal(await mobile.locator('nav').isVisible(), false);
+    assert.equal(await mobile.locator('#screen2').isVisible(), true);
+    assert.equal(await mobile.locator('#quote').isVisible(), true);
+    console.log('PASS: print CSS hides app controls and retains the fictional quote');
+  } finally {
+    await mobileContext.close();
+  }
+  console.log('RESULT: 8/8 actual Chromium flows passed, fictional data only');
 } finally {
   if (browser) await browser.close();
   await new Promise(resolveClose => server.close(resolveClose));
