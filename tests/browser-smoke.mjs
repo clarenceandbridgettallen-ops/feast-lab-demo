@@ -82,6 +82,24 @@ try {
     'Fictional Test Reception');
   console.log('PASS: real file-input import preserves existing identity and adds fictional event');
 
+  // Exercise the real file input on a malformed backup. A rejected import must
+  // never replace existing fictional records or strand the import button.
+  const beforeRejected = await page.evaluate(key => localStorage.getItem(key), STORAGE);
+  const malformed = {...imported, key:'fictional-invalid-timestamp',
+    updatedAt:['not-a-timestamp']};
+  await page.locator('#importFile').setInputFiles({
+    name:'fictional-invalid-backup.json', mimeType:'application/json',
+    buffer:Buffer.from(JSON.stringify({format:'feastlab-backup-v1',events:[malformed]}))
+  });
+  await page.waitForFunction(() =>
+    document.querySelector('#errorBox').textContent.includes('Import failed:'),
+    null, {timeout:10000});
+  await page.waitForFunction(() => !document.querySelector('#importBackup').disabled,
+    null, {timeout:10000});
+  assert.equal(await page.evaluate(key => localStorage.getItem(key), STORAGE),
+    beforeRejected, 'Rejected import must leave saved records byte-for-byte unchanged');
+  console.log('PASS: malformed backup timestamp rejected without modifying saved events');
+
   const secondTab = await context.newPage();
   await secondTab.goto(origin);
   await secondTab.locator('#eventName').fill('Unsaved work in another tab');
@@ -131,7 +149,7 @@ try {
   } finally {
     await mobileContext.close();
   }
-  console.log('RESULT: 8/8 actual Chromium flows passed, fictional data only');
+  console.log('RESULT: 9/9 actual Chromium flows passed, fictional data only');
 } finally {
   if (browser) await browser.close();
   await new Promise(resolveClose => server.close(resolveClose));
