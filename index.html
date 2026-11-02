@@ -259,7 +259,7 @@ if(!storeAll(latest.filter(x=>x.key!==key)))return false;
 if(activeEventKey===key){activeEventKey=null;activeEventSnapshot=null;}
 renderSaved();$('savedList').focus();status('Saved event deleted from this device. Other events were preserved.');return true;
 }
-function exportBackup(){const events=loadAll();if(events===null)return;const payload={format:'feastlab-backup-v1',exportedAt:new Date().toISOString(),events};const blob=new Blob([JSON.stringify(payload,null,2)],{type:'application/json'});const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download='feast-lab-events-backup.json';a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);status('Backup exported. Store it somewhere safe.');}
+function exportBackup(){const events=loadAll();if(events===null)return false;let url=null;try{const payload={format:'feastlab-backup-v1',exportedAt:new Date().toISOString(),events};const blob=new Blob([JSON.stringify(payload,null,2)],{type:'application/json'});url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download='feast-lab-private-backup-'+payload.exportedAt.replace(/[:.]/g,'-')+'.json';a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);status('Backup download requested. Check your Downloads folder and keep the file private.');return true;}catch{if(url)URL.revokeObjectURL(url);error('Backup download could not start. Saved events were not changed. Check browser download permissions and try again.');return false;}}
 function exportDamagedStorage(){
 let raw;
 try{raw=localStorage.getItem(STORAGE);}catch{error('Browser storage cannot be accessed. No recovery file was created, and existing data was not changed.');return false;}
