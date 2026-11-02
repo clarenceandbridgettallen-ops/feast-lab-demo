@@ -827,3 +827,37 @@ test('import preserves compatibility with finite numeric primitive backup fields
   assert.equal(saved.find(x => x.key === 'fictional-numeric-primitive').data.guests, 40);
   assert.match(app.get('status').textContent, /1 new event\(s\)/);
 });
+
+
+test('backup import rejects malformed timestamp metadata without changing saved events', async () => {
+  const app = createApp();
+  app.get('sampleEvent').click();
+  app.get('save').click();
+  const storageKey = 'feastlab-private-v1';
+  const before = app.stored.get(storageKey);
+  const existing = JSON.parse(before)[0];
+  const input = app.get('importFile');
+  for (const [index, bad] of [[1, []], [2, {nested: 'bad'}], [3, 123], [4, 'x'.repeat(129)]]) {
+    const payload = {
+      format: 'feastlab-backup-v1',
+      events: [{key: 'fictional-invalid-' + index, updatedAt: bad,
+        data: {...existing.data, eventName: 'Fictional import test'}}],
+    };
+    const writesBefore = app.writes();
+    await input.listeners.get('change')({target: {
+      files: [{size: 1000, text: async () => JSON.stringify(payload)}], value: 'invalid.json',
+    }});
+    assert.equal(app.stored.get(storageKey), before, 'Malformed metadata must not rewrite storage');
+    assert.equal(app.writes(), writesBefore, 'Malformed metadata must not write');
+    assert.match(app.get('errorBox').textContent, /Import failed/);
+  }
+  const legacy = {format: 'feastlab-backup-v1', events: [{
+    key: 'fictional-legacy-no-timestamp', data: {...existing.data, eventName: 'Legacy fictional import'},
+  }]};
+  await input.listeners.get('change')({target: {
+    files: [{size: 1000, text: async () => JSON.stringify(legacy)}], value: 'legacy.json',
+  }});
+  const saved = JSON.parse(app.stored.get(storageKey));
+  assert.equal(saved.length, 2, 'Legacy backups without timestamps remain importable');
+  assert.equal(typeof saved[1].updatedAt, 'string');
+});
