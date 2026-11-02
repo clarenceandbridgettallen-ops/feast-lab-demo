@@ -16,8 +16,15 @@ permissions:
 jobs:
   smoke:
     runs-on: ubuntu-latest
-    timeout-minutes: 4
+    timeout-minutes: 8
     steps:
       - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
       - name: Run dependency-free Node smoke tests
         run: node --test tests/*.test.mjs
+      - name: Install free CI-only Chromium driver
+        run: npm install --no-save --no-package-lock playwright-core@1.56.1
+      - name: Run actual Chromium storage, backup and cross-tab QA
+        run: node tests/browser-smoke.mjs
