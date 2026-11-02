@@ -41,6 +41,8 @@ try {
     'Loading a sample must not write persistent storage');
   console.log('PASS: sample does not persist automatically');
 
+  await page.locator('#next').click();
+  await page.locator('#next').click();
   await page.locator('#save').click();
   const saved = await page.evaluate(key => JSON.parse(localStorage.getItem(key)), STORAGE);
   assert.equal(saved.length, 1);
@@ -84,6 +86,8 @@ try {
   await secondTab.goto(origin);
   await secondTab.locator('#eventName').fill('Unsaved work in another tab');
   await page.locator('#sampleEvent').click();
+  await page.locator('#next').click();
+  await page.locator('#next').click();
   await page.locator('#save').click();
   await secondTab.waitForFunction(() =>
     document.querySelector('#status').textContent.includes('another tab'), null,
