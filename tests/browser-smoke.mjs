@@ -33,6 +33,14 @@ try {
   browser = await chromium.launch({executablePath, headless:true,
     args:['--no-sandbox', '--disable-dev-shm-usage']});
   const context = await browser.newContext({acceptDownloads:true});
+  // Privacy regression: watch actual Chromium requests from every test tab.
+  // Blob/data URLs are local; only off-origin HTTP(S) requests are unexpected.
+  const unexpectedRequests = [];
+  const watchRequests = request => {
+    const url = request.url();
+    if (/^https?:/i.test(url) && !url.startsWith(origin)) unexpectedRequests.push(url);
+  };
+  context.on('request', watchRequests);
   const page = await context.newPage();
   await page.goto(origin);
   await page.locator('#sampleEvent').click();
@@ -118,6 +126,7 @@ try {
   const mobileContext = await browser.newContext({
     viewport:{width:390,height:844}, isMobile:true, hasTouch:true
   });
+  mobileContext.on('request', watchRequests);
   try {
     const mobile = await mobileContext.newPage();
     await mobile.goto(origin);
@@ -149,7 +158,14 @@ try {
   } finally {
     await mobileContext.close();
   }
-  console.log('RESULT: 9/9 actual Chromium flows passed, fictional data only');
+  const csp = await page.locator('meta[http-equiv="Content-Security-Policy"]').getAttribute('content');
+  for (const directive of ["default-src 'none'", "connect-src 'none'", "form-action 'none'"]) {
+    assert.ok(csp?.includes(directive), 'Public demo must declare CSP directive: ' + directive);
+  }
+  assert.deepEqual(unexpectedRequests, [],
+    'Fictional demo must make no off-origin HTTP(S) requests during browser QA');
+  console.log('PASS: restrictive CSP declared and no off-origin HTTP(S) requests across real browser flows');
+  console.log('RESULT: 10/10 actual Chromium flows passed, fictional data only');
 } finally {
   if (browser) await browser.close();
   await new Promise(resolveClose => server.close(resolveClose));
