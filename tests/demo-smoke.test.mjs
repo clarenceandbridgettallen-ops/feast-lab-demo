@@ -756,3 +756,28 @@ test('backup import validates optional calendar dates without rewriting saved re
   assert.equal(reopened.get('savedList').children.length, 1);
   assert.doesNotMatch(reopened.get('errorBox').textContent, /unreadable/);
 });
+
+test('backup download request reports accurate status and preserves fictional saved data', () => {
+  const urlApi = {createObjectURL: () => 'blob:fictional', revokeObjectURL() {}};
+  const app = createApp(null, urlApi);
+  app.get('sampleEvent').click();
+  app.get('save').click();
+  const before = app.stored.get('feastlab-private-v1');
+  app.get('export').click();
+  assert.match(app.get('status').textContent, /Backup download requested/);
+  assert.equal(app.stored.get('feastlab-private-v1'), before);
+  assert.match(source, /feast-lab-private-backup-/);
+  assert.match(source, /exportedAt\.replace\(/);
+});
+
+test('blocked backup download does not claim success or alter fictional saved events', () => {
+  const urlApi = {createObjectURL: () => { throw Error('Downloads disabled'); }, revokeObjectURL() {}};
+  const app = createApp(null, urlApi);
+  app.get('sampleEvent').click();
+  app.get('save').click();
+  const before = app.stored.get('feastlab-private-v1');
+  app.get('export').click();
+  assert.match(app.get('errorBox').textContent, /Backup download could not start/);
+  assert.doesNotMatch(app.get('status').textContent, /Backup exported/);
+  assert.equal(app.stored.get('feastlab-private-v1'), before);
+});
