@@ -733,7 +733,7 @@ test('backup import validates optional calendar dates without rewriting saved re
       files:[{size:1000, text:async () => JSON.stringify(payload)}], value:'fictional-date.json',
     }});
   };
-  for (const [i, date] of [null, {}, '2026-02-29', '2026-04-31', '2026-13-01', '2026-1-1'].entries()) {
+  for (const [i, date] of [null, {}, '0000-01-01', '0000-02-29', '2026-02-29', '2026-04-31', '2026-13-01', '2026-1-1'].entries()) {
     const before = app.stored.get(storageKey);
     const writes = app.writes();
     await importOne(date, 'fictional-invalid-date-'+i);
@@ -743,8 +743,10 @@ test('backup import validates optional calendar dates without rewriting saved re
   }
   await importOne('2028-02-29', 'fictional-valid-leap-day');
   assert.equal(JSON.parse(app.stored.get(storageKey)).length, 2, 'Valid leap day imports');
+  await importOne('0001-01-01', 'fictional-valid-first-year');
+  assert.equal(JSON.parse(app.stored.get(storageKey)).length, 3, 'First representable year imports');
   await importOne('', 'fictional-optional-date');
-  assert.equal(JSON.parse(app.stored.get(storageKey)).length, 3, 'Blank optional date imports');
+  assert.equal(JSON.parse(app.stored.get(storageKey)).length, 4, 'Blank optional date imports');
 
   // Existing saved data is not an import: preserve legacy records without a valid date.
   const legacy = new Map([[storageKey, JSON.stringify([{
